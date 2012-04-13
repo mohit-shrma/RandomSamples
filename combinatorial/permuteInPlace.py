@@ -4,8 +4,6 @@ import sys
 then swap(3,1) 'c' with all perms of 'ab', follow this recursively
 """
 
-
-
 #permutes list containing char  
 #permute part starting from i index till n-1 index (including)
 def permutations(strList, i, n):
