@@ -1,5 +1,6 @@
 import sys
-
+""" generate permutation by recurrence
+for 'abc' add 'c' to all perms of 'ab' i.e XaXbX X->c"""
 
 def permutations(str):
     allPerms = []
