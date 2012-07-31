@@ -1,2 +1,0 @@
--- recvBuff buffer allocated in all ranks, so should we allocate cautious when needed?
--- 
