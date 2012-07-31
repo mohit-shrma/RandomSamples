@@ -1,0 +1,9 @@
+#include <stdio.h>
+#include "mpi.h"
+int main(int argc, char **argv) {
+
+  int rank, size, tag, rc, i;
+  MPI_Status status;
+
+  
+}
