@@ -7,7 +7,7 @@ import sys
          = 1 if no such j found
 """
 
-""" return length of LIS in this seq and the index sequence ends
+""" return length of LIS in this seq 
     prev stores the back pointer to previous index in LIS
     subLisLen stores the LIS length ending at say index i
 """
@@ -215,6 +215,7 @@ def findLIS(sequence):
             lenLIS = max(lenLIS, j+1)
     
     return getSeq(sequence, predecessorStor, positionByLenStor[lenLIS])
+
 
 def main():
     someSeq = [1,8,2,4,3,4,5,10,10]

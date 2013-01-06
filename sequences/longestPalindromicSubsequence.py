@@ -5,7 +5,7 @@ as palindromic subsequences first one being longest """
 import sys
 
 """ return length of longest palindromic subsequence  of given sequence
-    seq[0..n-1] -> i/p sequence L(0,n-1) denotes LPS of X
+    seq[0..n-1] -> i/p sequence L(0,n-1) denotes LPS of seq
     if seq[0]==seq[n-1] then L(0,n-1) = 2 + L(1,n-2)
     else L(0, n-1) = max(L(1, n-1), L(0,n-2))
 """
@@ -28,7 +28,7 @@ def lengthOfLPS(seq):
 
 def main():
     #strSeq = "BBABCBCAB" #BABCBAB is longest
-    #strSeq = "GEEKSFORGEEKS" # 7
+    #strSeq = "PEEKSFORPEEKS" # 7
     strSeq = "DABANGG"
     print 'strSeq: ', strSeq
     print 'length of longest palindromic subsequence: ', lengthOfLPS(strSeq)
