@@ -88,6 +88,11 @@ class TreeMain {
         //diameter
         System.out.println("diameter of tree: " + bst.diameter(root));
         
+        //check if bst
+        //System.out.println("is bst: " + bst.isBinarySearchTree(root, -100, 100));
+        
+        validateBST();
+        
     } 
     
     
@@ -223,6 +228,21 @@ class TreeMain {
         }
         
         return root;
+        
+    }
+    
+    /*
+     * validate if tree is a BST or not
+     */
+    public void validateBST() {
+        Node root = new Node(10);
+        root.setLeftChild(new Node(5));
+        root.setRightChild(new Node(12));
+        root.getLeftChild().setRightChild(new Node(9));
+        root.getRightChild().setLeftChild(new Node(10));
+        
+        BinarySearchTree bst = new BinarySearchTree(root);
+        System.out.println("is BST: " + bst.isBinarySearchTree(root, -100, 100));
         
     }
     

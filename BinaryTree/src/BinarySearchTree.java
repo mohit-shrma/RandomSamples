@@ -42,6 +42,34 @@ class BinarySearchTree extends BinaryTree {
 	
 	
 	/*
+	 * program to validate whether given tree is binary search tree or not
+	 * 
+	 */
+	public boolean isBinarySearchTree(Node node, int min, int max) {
+	    
+	    if (node == null) {
+	        return true;
+	    }
+	    
+	    if (node.getKey() > min && node.getKey() <= max) {
+	        //node keys satisfy the range, 
+	        //validate their left and right subtrees
+	        boolean isLeftChildBST = isBinarySearchTree(node.getLeftChild(), 
+	                                                    min,
+	                                                    node.getKey());
+	        boolean isRightChildBST = isBinarySearchTree(node.getRightChild(), 
+	                                                     node.getKey(),
+	                                                     max);
+	        return isRightChildBST && isLeftChildBST;
+	        
+	    } else {
+	        return false;
+	    }
+	    
+	}
+	
+	
+	/*
 	 * find lca by finding intersection or merge point of path to top from
 	 * two key nodes, same as merge point detection of two link lists
 	 */
