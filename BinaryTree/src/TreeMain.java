@@ -1,6 +1,7 @@
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Arrays;
 import java.util.Random;
 import java.util.Vector;
 
@@ -113,6 +114,112 @@ class TreeMain {
     }
     
     
+    
+    /*
+     * to construct binary tree from given preorder and post order
+     */
+    public void prePostTree() {
+        int[] pre = {10, 6, 11, 15, 4, 17, 8, 9, 6};
+        int[] post = {11, 15, 6, 17, 9, 6, 8, 4, 10};
+        
+        Node root = constrTreeFromPrePost(pre, post);
+        BinarySearchTree bst = new BinarySearchTree(root);
+        System.out.println("preorder traversal: ");
+        bst.preorderTraversal(root);
+        System.out.println();
+        //populate next right at each level
+        bst.populateNextRight(root);
+        
+        //do level order traverse using next right
+        System.out.println("Level order traversal using next rt: ");
+        bst.levelOrderTraverseUsingNextRt(root);
+    }
+    
+    
+    /*
+     * construct tree from given inorder traversal or postorder traversal
+     */
+    public Node constrTreeFromPrePost(int[] pre, int[] post) {
+        
+        //identify top node or root node
+        Node root = new Node(pre[0]);
+        
+        //identify left subtree elements
+        int leftPreStartInd = -1;
+        int leftPreEndInd = -1;
+        int leftPostStartInd = -1;
+        int leftPostEndInd = -1;
+        int i = -1;
+        int numPostElem = -1;
+        
+        //identify right subtree elements
+        int rightPreStartInd = -1;
+        int rightPreEndInd = -1;
+        
+        int rightPostStartInd = -1;
+        int rightPostEndInd = -1;
+        
+        int preOrdrSuc  = -1;
+        
+        if (pre.length > 1) {
+            
+            //get preorder successor
+            preOrdrSuc = pre[1];
+            
+           
+         
+            //search for preOrdrSuc in postOrdr
+            for (i = 0; i < post.length; i++) {
+                if (post[i] == preOrdrSuc) 
+                    break;
+            }
+            
+            //set start and end ind for left subtree post order
+            leftPostEndInd = i;
+            leftPostStartInd = 0;
+            
+            
+            //num of elements in left subtree
+            numPostElem = leftPostEndInd - leftPostStartInd + 1;
+            
+            //set start and end ind for left subtree pre order
+            leftPreStartInd = 1;
+            leftPreEndInd = leftPreStartInd + numPostElem - 1;
+            
+            if (leftPreEndInd < pre.length - 1) {
+                
+                //set indices for right subtree
+                rightPreStartInd = leftPreEndInd + 1;
+                rightPreEndInd = pre.length - 1;
+                
+                rightPostStartInd = leftPostEndInd + 1;
+                rightPostEndInd = pre.length - 2;
+            }
+            
+            //add left child to current node
+            if (leftPreStartInd >= 0) {
+                root.setLeftChild(constrTreeFromPrePost(
+                    Arrays.copyOfRange(pre, leftPreStartInd, leftPreEndInd + 1),
+                    Arrays.copyOfRange(post, leftPostStartInd, leftPostEndInd + 1)));
+            } else {
+                root.setLeftChild(null);
+            }
+            
+            //add right child to current node
+            if (rightPreStartInd >= 0) {
+                root.setRightChild(constrTreeFromPrePost(
+                    Arrays.copyOfRange(pre, rightPreStartInd, rightPreEndInd + 1),
+                    Arrays.copyOfRange(post, rightPostStartInd, rightPostEndInd + 1)));
+            } else {
+                root.setRightChild(null);
+            }
+        }
+        
+        return root;
+        
+    }
+    
+    
     public static void main(String[] args) {
         
         TreeMain bTree = new TreeMain();
@@ -138,6 +245,7 @@ class TreeMain {
              System.out.println("IO error: " + ioe.getMessage());
         }
        
+        
         
         bTree.binarySearchTreeMethods(keys1);
         

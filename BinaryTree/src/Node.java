@@ -24,6 +24,9 @@ class Node {
 	//next right node at same level
 	private Node nextRight;
 	
+	public Node(int key) {
+	    this(null, null, key);
+	}
 	
 	public Node(Node left, Node right, int key) {
 		this(left, right, key, null);
