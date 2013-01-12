@@ -620,5 +620,101 @@ class BinaryTree {
       }
     }
     
+    
+    /*
+     * find height of tree
+     */
+    public int findHeight(Node node) {
+        
+        if (node == null)
+            return 0;
+        
+        int rightHt = findHeight(node.getRightChild());
+        int leftHt = findHeight(node.getLeftChild());
+        
+        if (rightHt > leftHt) {
+            return rightHt + 1;
+        } else  {
+            return leftHt + 1;
+        }
+        
+    }
+    
+    
+    /*
+     * set width at each level by incrementing value of width at a level
+     * in array
+     */
+    private void setWidthLevel(Node node, int level, int width[]) {
+        
+        if (node == null) {
+            return;
+        }
+        
+        width[level] += 1;
+        
+        setWidthLevel(node.getLeftChild(), level+1, width);
+        setWidthLevel(node.getRightChild(), level+1, width);
+        
+    }
+    
+    
+    /*
+     * find maximum width with in a tree i.e level having maximum nodes
+     */
+    public int findMaxWidth(Node node) {
+        //get height of tree
+        int height = findHeight(node);
+        
+        //initialize array containing widht at each level
+        int width[] = new int[height];
+        for (int i = 0; i < height; i++) {
+            width[i] = 0;
+        }
+        
+        //set width of each level
+        setWidthLevel(node, 0, width);
+        
+        //find maximum width
+        int max = -1;
+        for (int levelWidth: width) {
+            if (levelWidth > max) {
+                max = levelWidth;
+            }
+        }
+        
+        return max;
+    }
+    
+    
+    /*
+     * find diameter of tree i.e num of nodes on the longest path between
+     *  two nodes in tree
+     */
+    public int diameter(Node node) {
+        
+        if (node == null) {
+            return 0;
+        }
+        
+        int leftHt = findHeight(node.getLeftChild());
+        int rightHt = findHeight(node.getRightChild());
+        
+        int leftDiam = diameter(node.getLeftChild());
+        int rightDiam = diameter(node.getRightChild());
+
+        int maxDia = leftDiam > rightDiam? leftDiam:rightDiam;
+        
+        if (maxDia < leftHt + rightHt + 1) {
+            maxDia = leftHt + rightHt + 1;
+        }
+        
+        return maxDia;
+    }
+    
+    
+    
+    
+    
      
 }

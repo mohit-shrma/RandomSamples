@@ -81,6 +81,13 @@ class TreeMain {
         System.out.println("\niterative postorder traversal: ");
         bst.iterativePostorder(root);
         
+        
+        //maximum width
+        System.out.println("max width of tree: " + bst.findMaxWidth(root));
+        
+        //diameter
+        System.out.println("diameter of tree: " + bst.diameter(root));
+        
     } 
     
     
