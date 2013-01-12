@@ -473,5 +473,152 @@ class BinaryTree {
         }
         
     }
+    
+    
+    /*
+     * Iterative pre order traversal
+     */
+    public void iterativePreorder(Node node) {
+        //stack to store nodes
+        Vector<Node> nodeStack = new Vector<Node>();
+        
+        //push the node into the stack
+        nodeStack.add(0, node);
+        
+        Node poppedNode = null;
+        while(nodeStack.size() > 0) {
+            //until node stack is empty
+            
+            //pop the node
+            poppedNode = nodeStack.remove(0);
+            
+            //key of the popped node the popped node
+            System.out.print(poppedNode.getKey() + " ");
+            
+            if (poppedNode.getRightChild() != null) {
+                //push right child on stack
+                nodeStack.add(0, poppedNode.getRightChild());
+            }
+            
+            if (poppedNode.getLeftChild() != null) {
+                //push left child on stack
+                nodeStack.add(0, poppedNode.getLeftChild());
+            }
+        }
+    }
+    
+    
+    /*
+     * Iterative inorder traversal
+     */
+    public void iterativeInorder(Node node) {
+      //stack to store nodes
+      Vector<Node> nodeStack = new Vector<Node>();
+      
+      //push the node into the stack
+      nodeStack.add(0, node);
+      
+      Node poppedNode = null;
+      Node topNode = null;
+      while(nodeStack.size() > 0) {
+          //until node stack is empty
+          
+         //get the top node from stack
+         topNode = nodeStack.elementAt(0);
+          
+         while (topNode.getLeftChild() != null) {
+             //push left child on stack
+             nodeStack.add(0, topNode.getLeftChild());
+             topNode = topNode.getLeftChild();
+         }
+         
+         poppedNode = nodeStack.remove(0);
+       
+         //key of the popped node 
+         System.out.print(poppedNode.getKey() + " ");
+         
+         while (poppedNode.getRightChild() == null && nodeStack.size() > 0) {
+             //pop the node until a node with right child is found as we 
+             //have already pushed nodes with left child on the path
+             poppedNode = nodeStack.remove(0);
+             
+             //key of the popped node 
+             System.out.print(poppedNode.getKey() + " ");
+         }
+         
+         if (poppedNode.getRightChild() != null) {
+             //push right child on stack
+             nodeStack.add(0, poppedNode.getRightChild());
+         }
+         
+      }
+    }
+    
+    
+    
+    /*
+     * iterative postorder traversal
+     */
+    public void iterativePostorder(Node node) {
+        
+      //stack to store nodes
+      Vector<Node> nodeStack = new Vector<Node>();
+        
+      //push the node into the stack
+      nodeStack.add(0, node);
+      
+      //node at top
+      Node topNode = nodeStack.elementAt(0);
+      
+      //previous node traversed
+      Node prev = null;
+              
+      while (nodeStack.size() > 0) {
+          //until node stack is empty
+          
+          //get node at top
+          topNode = nodeStack.elementAt(0);
+          
+          
+          if ( (prev == null) || prev.getLeftChild() == topNode 
+                  || prev.getRightChild() == topNode) {
+              //if topNode is root or 
+              //top node is child of prev i.e down traversal
+              if (topNode.getLeftChild() != null) {
+                  //if left child of top node exists
+                  nodeStack.add(0, topNode.getLeftChild());
+              } else if (topNode.getRightChild() != null) {
+                  //if right child of top node exists
+                  nodeStack.add(0, topNode.getRightChild());
+              } else {
+                  //left and right child don't exists
+                  //pop the top node and display
+                  nodeStack.remove(0);
+                  System.out.println(topNode.getKey());
+              }
+          } else if (topNode.getLeftChild() == prev) {
+              //prev node is child of top node
+              //traversing up the tree
+              if (topNode.getRightChild() != null) {
+                  //right child exists of tp node
+                  nodeStack.add(0, topNode.getRightChild());
+              } else {
+                  //no right child exists
+                  //pop the topNode and display
+                  nodeStack.remove(0);
+                  System.out.println(topNode.getKey());
+              }
+          } else if (topNode.getRightChild() == prev) {
+              //prev node is right child of top, traversing up
+              //pop the topNode and display
+              nodeStack.remove(0);
+              System.out.println(topNode.getKey());
+          }
+          
+          //update previously traversed node
+          prev = topNode;
+      }
+    }
+    
      
 }

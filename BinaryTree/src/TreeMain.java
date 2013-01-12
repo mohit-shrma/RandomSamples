@@ -68,6 +68,18 @@ class TreeMain {
         System.out.println("Level order traversal using next rt: ");
         bst.levelOrderTraverseUsingNextRt(root);
         
+        //do iterative preorder traversal
+        System.out.println("iterative preorder traversal: ");
+        bst.iterativePreorder(root);
+        
+        //do iterative inorder traversal
+        System.out.println("\niterative inorder traversal: ");
+        bst.iterativeInorder(root);
+        
+        //do iterative postorder traversdal
+        System.out.println("\niterative postorder traversal: ");
+        bst.iterativePostorder(root);
+        
     } 
     
     
