@@ -83,26 +83,80 @@ class TreeMain {
     } 
     
     
+    public void mergeTwoBSTs(Vector<Integer> keys1, Vector<Integer> keys2) {
+        
+        BinarySearchTree bst1 = new BinarySearchTree(null);
+        for (int key: keys1) {
+            bst1.insertKey(key);
+        }
+        bst1.assignNodeHeight(bst1.getRoot());
+        bst1.setTreeHeight();
+        System.out.println("pretty print tree1: ");
+        bst1.prettyPrint();
+        System.out.println();
+        
+        BinarySearchTree bst2 = new BinarySearchTree(null);
+        for (int key: keys2) {
+            bst2.insertKey(key);
+        }
+        
+        bst2.assignNodeHeight(bst2.getRoot());
+        bst2.setTreeHeight();
+        System.out.println("pretty print tree2: ");
+        bst2.prettyPrint();
+        System.out.println();
+        
+        System.out.println("merged binary trees: ");
+        bst1.printMergeBSTs(bst1.getRoot(), bst2.getRoot());
+        
+        
+    }
+    
+    
     public static void main(String[] args) {
         
         TreeMain bTree = new TreeMain();
         
-        Vector<Integer> keys = new Vector<Integer>();
+        Vector<Integer> keys1 = new Vector<Integer>();
+        Vector<Integer> keys2 = new Vector<Integer>();
         
         //parse commandline line by line to get keys
         //open up standard input
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
         
+        System.out.println("Enter input keys for binary tree1 : ");
+        
         try {
             String line = "";
             while((line = br.readLine()) != null) {
-                keys.add(Integer.parseInt(line));
+                /*if (Integer.parseInt(line) == 997) {
+                    break;
+                }*/
+                keys1.add(Integer.parseInt(line));
+            }
+        } catch (IOException ioe) {
+             System.out.println("IO error: " + ioe.getMessage());
+        }
+       
+        
+        bTree.binarySearchTreeMethods(keys1);
+        
+        //get input for second binary tree
+        /*System.out.println("Enter input keys for binary tree1 : ");
+        
+        try {
+            String line = "";
+            while((line = br.readLine()) != null) {
+                if (Integer.parseInt(line) == 997) {
+                    break;
+                }
+                keys2.add(Integer.parseInt(line));
             }
         } catch (IOException ioe) {
              System.out.println("IO error: " + ioe.getMessage());
         }
         
-        bTree.binarySearchTreeMethods(keys);
+        bTree.mergeTwoBSTs(keys1, keys2);*/
         
     }
     

@@ -53,6 +53,100 @@ class BinarySearchTree extends BinaryTree {
 	    
 	}
 	
+	/*
+	 * merge two binary search trees, use two stacks to print in sorted order
+	 * complexity: O(ht of I tree + ht of II tree)
+	 */
+	public void printMergeBSTs(Node node1, Node node2) {
+	    
+	    //stack to store nodes from first tree
+	    Vector<Node> nodeStack1 = new Vector<Node>();
+	    
+	    //stack to store nodes from second tree
+	    Vector<Node> nodeStack2 = new Vector<Node>();
+	    
+	    //push all nodes towards left leaf in tree1
+	    while (node1 != null) {
+	        nodeStack1.add(0, node1);
+	        node1 = node1.getLeftChild();
+	    }
+	    
+	    //push all nodes towards left leaf in tree2
+	    while (node2 != null) {
+	        nodeStack2.add(0, node2);
+	        node2 = node2.getLeftChild();
+	    }
+	    
+	    //top node of first
+	    Node topNode1 = null;
+	    
+	    //top node of second stack
+	    Node topNode2 = null;
+	    
+	    Node temp = null;
+	    
+	    while (nodeStack1.size() > 0 && nodeStack2.size() > 0) {
+	        
+	        //get top node from first stack
+	        topNode1 = nodeStack1.elementAt(0);
+	        
+	        //get top node from second stack
+	        topNode2 = nodeStack2.elementAt(0);
+	        
+	        if (topNode1.getKey() < topNode2.getKey()) {
+	            //top node of stack 1 is lesser
+	            //pop and display the node
+	            nodeStack1.remove(0);
+	            System.out.println(topNode1.getKey());
+	            //push if any right child is there
+	            if (topNode1.getRightChild() != null) {
+	                temp = topNode1.getRightChild();
+	                while (temp != null) {
+	                    nodeStack1.add(0, temp);
+	                    temp = temp.getLeftChild();
+	                }
+	            }
+	        } else {
+	            //top node of stack 2 is lesser
+                //pop and display the node
+                nodeStack2.remove(0);
+                System.out.println(topNode2.getKey());
+                //push if any right child is there
+                if (topNode2.getRightChild() != null) {
+                    temp = topNode2.getRightChild();
+                    while (temp != null) {
+                        nodeStack2.add(0, temp);
+                        temp = temp.getLeftChild();
+                    }
+                }
+	            
+	        }
+	        
+	        
+	    }
+	    
+	    //either both stacks are empty or one of them is empty
+	    //so print themone by one
+	    
+	    if (nodeStack1.size() > 0 ) {
+	        while(nodeStack1.size() > 0) {
+	            topNode1 = nodeStack1.remove(0);
+	            System.out.println(topNode1.getKey());
+	        }
+	    }
+	    
+	    if (nodeStack2.size() > 0) {
+	        while(nodeStack2.size() > 0) {
+                topNode2 = nodeStack2.remove(0);
+                System.out.println(topNode2.getKey());
+            }
+	    }
+	    
+	    
+	    
+	}
+	
+	
 	
 	
 	/*
