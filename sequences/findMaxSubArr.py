@@ -63,15 +63,51 @@ def findMaxCrossSubArr(arr, lo, mid, hi):
     return (maxLeft, maxRight, leftSum+rightSum)
 
 
+""" linear time algorithm to compute maximmum contiguous subarray sum """
+def kadanesMaxSubArr(arr):
+    maxSoFar = maxEndingHere = 0
+    for num in arr:
+        maxEndingHere = max(0, maxEndingHere + num)
+        maxSoFar = max(maxEndingHere, maxSoFar)
+    return maxSoFar
+
+
+""" return the maximum subarray sum in case of circular array"""
+def maxSubCircularSubArr(arr):
+
+    #get max subarray sum in non wrapping case
+    nonWrapMaxSum = kadanesMaxSubArr(arr)
+
+    #get max subarray sum in case of circular arrays
+    #get the sum of array and inver the sign of number in array
+    sum = 0
+    for i in range(len(arr)):
+        sum += arr[i]
+        arr[i] = -arr[i]
+
+    #get max sum subarray in inverted array
+    nonWrapInvMaxSum = kadanesMaxSubArr(arr)
+
+    #subtract with total sum to get sum of max subarray in wrapped
+    #case of original array
+    wrapMaxSum = sum + nonWrapInvMaxSum
+
+    #return the maximum of two cases
+    return max(nonWrapMaxSum, wrapMaxSum)
+    
+
 def main():
-    arr = [-10, 2, 4, -9, 6, 7 , -2, -8]
+    #arr = [-10, 2, 4, -9, 6, 7 , -2, -8]
+    #arr = [10, -12, 11, 10, -12, 11]
+    arr = [10, -12, 11]
     lo = 0
     hi = len(arr) - 1
     subArrLo, subArrHi, subArrSum = findMaxSubArr(arr, lo, hi)
     print 'array: ', arr
     print 'low, high, arrSum: ', subArrLo, subArrHi, subArrSum
     print 'subArr: ', arr[subArrLo:subArrHi+1]
-
+    print 'kadanes sum of subarr: ', kadanesMaxSubArr(arr)
+    print 'max subarray sum in circular arr', maxSubCircularSubArr(arr)
  
 if __name__ == '__main__':
     main()
