@@ -89,9 +89,15 @@ class TreeMain {
         System.out.println("diameter of tree: " + bst.diameter(root));
         
         //check if bst
-        //System.out.println("is bst: " + bst.isBinarySearchTree(root, -100, 100));
+        System.out.println("is bst: " + bst.isBinarySearchTree(root, -100, 100));
+        //validateBST();
         
-        validateBST();
+        //convert tree to doubly link list and traverse
+        Node head = bst.convertToDoublyLinkList(root);
+        bst.traverseDoublyLL(head);
+        
+        //TODO: write a code to reconstruct tree from above DLL by looking at
+        //pre/post order traversal stored previously
         
     } 
     

@@ -712,9 +712,94 @@ class BinaryTree {
         return maxDia;
     }
     
+    /*
+     * concatenate two doubly link list and return the new list
+     */
+    private Node concatDoublyLL(Node a, Node b) {
+        
+        if (a == null) {
+            return b;
+        }
+        
+        if (b== null) {
+            return a;
+        }
+        
+        //get the last node of list a
+        Node lastA = a.getLeftChild();
+        
+        //get the last node of list b
+        Node lastB = b.getLeftChild();
+        
+        //join last node of a with b
+        lastA.setRightChild(b);
+        b.setLeftChild(lastA);
+        
+        //join last node of b with a to make it circular
+        lastB.setRightChild(a);
+        a.setLeftChild(lastB);
+        
+        //return concatenated doubly link list 
+        return a;
+    }
     
-    
-    
+    /*
+     * convert given binary tree to doubly link list such that left subtree
+     * comes first then root and then right subtree. in case of bst all nodes
+     * will be in increasing order.
+     * Postorder traversal needs to be done
+     */
+    public Node convertToDoublyLinkList(Node root) {
+        
+        if (root == null) {
+            return null;
+        }
+        
+        //get the left child list
+        Node leftChildList = convertToDoublyLinkList(root.getLeftChild());
+        
+        //get the right child list
+        Node rightChildList = convertToDoublyLinkList(root.getRightChild());
+        
+        //reset root before assigning prev and next as left and right can be null
+        //and we need it to be circular so make it point to itself
+        root.setLeftChild(root);
+        root.setRightChild(root);
+        
+        //connect leftChildList and root
+        Node concatList = concatDoublyLL(leftChildList, root);
+        
+        //add right child list to above concatenated list
+        concatList = concatDoublyLL(concatList, rightChildList);
+        
+        return concatList;
+        
+    }
+    /*
+     * traverse doubly link list such that node.left is previous and node.right
+     * is next
+     */
+    public void traverseDoublyLL(Node node) {
+        
+        Node head = node;
+        
+        //traverse forward
+        System.out.println("Traverse doubly LL forward: ");
+        System.out.print(node.getKey() + " ");
+        while ( (node=node.getRightChild()) != head) {
+            System.out.print(node.getKey() + " ");
+        }
+        System.out.println();
+        
+        //traverse forward
+        System.out.println("Traverse doubly LL backward: ");
+        while ((node=node.getLeftChild()) != head) {
+            System.out.print(node.getKey() + " ");
+        }
+        System.out.print(node.getKey() + " ");
+        System.out.println();
+        
+    }
     
      
 }
