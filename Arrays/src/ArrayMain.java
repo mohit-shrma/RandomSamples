@@ -22,6 +22,20 @@ class ArrayMain {
             System.out.println("Not found");
         }
         System.out.println("num of triangles: " + arrSim.findAllTriangles());
+        arrSim.shuffle();
+        arrSim.displayArr();
+       
+        int[] a = {900};
+        int[] b = {1, 3, 5, 8, 9, 2, 6, 7, 6, 8, 9};
+        System.out.println("median of two arrays: " + arrSim.getMedian(a, b));
+        System.out.println("max sum. of subarray: " + arrSim.maxSumSubArr());    
+        System.out.println("max prod. of subarray: " + arrSim.maxProdSubArr());
+        System.out.println("is equal subset sum possible: " + arrSim.isEqualSubsetPossible());
+        System.out.println("is sub array sum equals 10: " + arrSim.isSubarraySum(10));
+        int[] c = {1, 3, 5, 8, 9, 2, 6, 7, 6, 8, 9};
+        arrSim.setArray(c);
+        arrSim.displayArr();
+        System.out.println("minimum jumps require to reach end from start: " + arrSim.minJumps());
     }
     
     
