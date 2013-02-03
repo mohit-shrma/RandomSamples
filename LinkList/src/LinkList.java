@@ -1,4 +1,5 @@
 import java.util.Vector;
+import java.util.Random;
 
 /*
  * contains all methods applicable on an link list
@@ -48,12 +49,32 @@ class LinkList {
      * will make the link list cyclic
      */
     public void makeListCyclic() {
+        
+        if (head == null)
+            return;
+        
         Node endNode = head;
+        
+        int numNodes = 1;
+        
         while (endNode.getNext() != null) {
             endNode = endNode.getNext();
+            numNodes++;
         }
-        //point last node to head to make it cyclic
-        endNode.setNext(head);
+        
+        //generate the number of node to which last node will connect to
+        Random generator = new Random();
+        int randInd = generator.nextInt(numNodes);
+        //find the randInd node
+        Node randIndNode = head;
+        int count = 0;
+        while(randIndNode.getNext() != null && count < randInd) {
+            randIndNode = randIndNode.getNext();
+            count++;
+        }
+        
+        //point last node to randIndNode to make it cyclic
+        endNode.setNext(randIndNode);
     }
     
     
@@ -81,6 +102,73 @@ class LinkList {
         
         displayFromEnd(node.getNext());
         System.out.print(node.getKey() + " ");
+    }
+    
+    
+    
+    /*
+     * reverse link list iterattively
+     */
+    public void revIter() {
+        
+        Node curr = head;
+        Node prev = null;
+        Node next = null;
+        while (curr != null) {
+            //get next of current node
+            next = curr.getNext();
+            
+            //set previous node as next of current node
+            curr.setNext(prev);
+            
+            //assign the current node previous for next iteration
+            prev = curr;
+            
+            //make the next node current for next iteration
+            curr = next;
+        }
+        
+        head = prev;
+    }
+    
+    
+    
+    /*
+     * recursively reverse the link list
+     */
+    private Node reverseRecurs(Node head) {
+        
+        if (head == null) {
+            return null;
+        }
+        
+        //pointer to other nodes apart from head
+        Node others = head.getNext();
+        
+        if (others == null) {
+            return head;
+        }
+        
+        //recursively reverse the other nodes
+        others = reverseRecurs(others);
+
+        //put head in the end of reversed others
+        head.getNext().setNext(head);
+        
+        //terminate end of list with null
+        head.setNext(null);
+        
+        //update head to old start of other nodes, which after reversal
+        //is starting node
+        head = others;
+        
+        return head;
+    }
+    
+    
+    //reverse the current link list
+    public void reverseRecurs() {
+        head = reverseRecurs(head);
     }
     
     
@@ -292,4 +380,59 @@ class LinkList {
     public void mergeSort() {
         head = mergeSortList(head);
     }
+    
+    
+    
+    /*
+     * reverse alternate k nodes at a time, head is the starting node to work
+     * on as a part of the list
+     */
+    public Node reverseAltKNodes(Node head, int k, boolean toRev) {
+        
+        
+        if (head == null) {
+            return null;
+        }
+        
+        Node curr = head;
+        Node prev = null;
+        Node next = null;
+        
+        //starting from head step over k nodes depending on boolean flag to 
+        //reverse or not
+        for (int i = 0; i < k && curr != null; i++) {
+            next = curr.getNext();
+            if (toRev) {
+                //reverse nodes if need to reverse
+                curr.setNext(prev);
+            }
+            prev = curr;
+            curr = next;
+        }
+        
+        if (toRev) {
+            //after reversing head will be the last node or kth node, 
+            //set its next by recursively
+            //calling reverse alternate k nodes on the curr i.e rest of list 
+            //with no reversal flag
+            //note that curr and prev are detach
+            head.setNext(reverseAltKNodes(curr, k, !toRev));
+            
+            //prev will be the head of reversed part return that
+            return prev;
+        } else {
+            //we just skipped k nodes and prev is the last node or kth node
+            //set prev next by attaching rest of list after it
+            prev.setNext(reverseAltKNodes(curr, k, !toRev));
+            //head is the starting node of skipped k nodes
+            return head;
+        }
+        
+    }
+    
+    
+    public void kAltRev(int k) {
+        head = reverseAltKNodes(head, k, true);
+    }
+    
 }

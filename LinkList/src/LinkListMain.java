@@ -24,8 +24,19 @@ class LinkListMain {
         linkList.displayFromEnd(head);
         System.out.println();
         
-        System.out.println("link list after reversal: ");
+        System.out.println("link list after recurs reversal: ");
         linkList.revLinkListRecur(head, null);
+        linkList.displayFromStart();
+        System.out.println();
+        
+        
+        System.out.println("link list after recurs reversal: ");
+        linkList.reverseRecurs();
+        linkList.displayFromStart();
+        System.out.println();
+        
+        System.out.println("link list after iterative reversal: ");
+        linkList.revIter();
         linkList.displayFromStart();
         System.out.println();
         
@@ -41,6 +52,10 @@ class LinkListMain {
         linkList.mergeSort();
         linkList.displayFromStart();
         
+        System.out.println();
+        System.out.println("k rev the link list: ");
+        linkList.kAltRev(2);
+        linkList.displayFromStart();
     }
     
     
