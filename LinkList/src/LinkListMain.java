@@ -28,6 +28,19 @@ class LinkListMain {
         linkList.revLinkListRecur(head, null);
         linkList.displayFromStart();
         System.out.println();
+        
+        System.out.println("Is list cyclic: " + (linkList.isCyclePresent() != null));
+        System.out.println("Make list cyclic");
+        linkList.makeListCyclic();
+        System.out.println("Is list cyclic: " + (linkList.isCyclePresent() != null));
+        System.out.println("Remove cycle");
+        linkList.removeCycle();
+        System.out.println("Is list cyclic: " + (linkList.isCyclePresent() != null));
+        
+        System.out.println("Merge sort the link list");
+        linkList.mergeSort();
+        linkList.displayFromStart();
+        
     }
     
     

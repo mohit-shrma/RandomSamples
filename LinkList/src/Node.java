@@ -5,13 +5,13 @@
 class Node {
     
     //value in a node
-    int key;
+    private int key;
     
     //pointer to next node in link list
-    Node next;
+    private Node next;
     
     //pointer to previous node in link list
-    Node prev;
+    private Node prev;
     
     public Node(int key, Node next, Node prev) {
         this.key = key;
