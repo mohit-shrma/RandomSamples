@@ -41,7 +41,7 @@ def getAdjList(userFriendsFileName, testUsers, trainUsers):
 def writeAdjList(adjFileName, adjList):
     with open(adjFileName, 'w') as adjFile:
         adjWriter = csv.writer(adjFile)
-        for user, friends in adjList:
+        for user, friends in adjList.iteritems():
             adjWriter.writerow([str(user), ' '.join(map(str, friends))])
 
 
