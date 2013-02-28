@@ -88,10 +88,11 @@ def writeCSRAdj(userAdjList, csrAdjFileName, idMapFileName):
                         csrAdjFile.write(str(userIdMap[friend]) + " 1 ")
                 csrAdjFile.write('\n')
 
-            print 'User with friends: ' + str(len(userIdMap))
+                #also write down the user corresponding to newId
+                idMapFile.write(str(newId) + ' ' + str(revIdUserMap[newId]) + '\n')    
+
+                print 'User with friends: ' + str(len(userIdMap))
             
-            for origUserId, newId in userIdMap.iteritems():
-                idMapFile.write(str(origUserId) + ' ' + str(newId) + '\n')    
 
 
 
