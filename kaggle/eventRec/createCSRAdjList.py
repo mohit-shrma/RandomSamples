@@ -104,6 +104,7 @@ def main():
         userFriendsFileName = sys.argv[3]
         csrAdjMatFileName = sys.argv[4];
         csrIDMapFileName = sys.argv[5];
+        adjFileName = sys.argv[6]
         
         trainUsersIds = rw.getUsersList(trainFileName)
         print 'unique train users: ', len(trainUsersIds)
@@ -115,7 +116,10 @@ def main():
         userAdjList = getAdjList(userFriendsFileName, testUsersIds, trainUsersIds)
 	print 'size of adjacency list: ', len(userAdjList)
 
-        writeCSRAdj(userAdjList, csrAdjMatFileName, csrIDMapFileName)
+        #write out the learned adjacency list
+        writeAdjList(adjFileName, userAdjList)
+        
+        #writeCSRAdj(userAdjList, csrAdjMatFileName, csrIDMapFileName)
         
     else:
         print 'err: invalid args'
