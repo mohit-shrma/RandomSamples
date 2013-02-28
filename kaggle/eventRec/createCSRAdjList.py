@@ -42,7 +42,8 @@ def writeAdjList(adjFileName, adjList):
     with open(adjFileName, 'w') as adjFile:
         adjWriter = csv.writer(adjFile)
         for user, friends in adjList:
-            adjWriter.writerow([user, ' '.join(friends)])
+            adjWriter.writerow([str(user), ' '.join(map(str, friends))])
+
 
 
 def writeCSRAdj(userAdjList, csrAdjFileName, idMapFileName):
@@ -120,7 +121,7 @@ def main():
         #write out the learned adjacency list
         writeAdjList(adjFileName, userAdjList)
         
-        #writeCSRAdj(userAdjList, csrAdjMatFileName, csrIDMapFileName)
+        writeCSRAdj(userAdjList, csrAdjMatFileName, csrIDMapFileName)
         
     else:
         print 'err: invalid args'
