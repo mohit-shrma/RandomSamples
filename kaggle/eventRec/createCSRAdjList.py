@@ -49,7 +49,7 @@ def trimAdjList(users, adjList):
         connUsers.add(user)
         for friend in adjList[user]:
             if friend not in connUsers:
-                unExpQ.add(0, friend)
+                unExpQ.insert(0, friend)
     trimAdjList = {}
     for user in connUsers:
         trimAdjList[user] = adjList[user]
