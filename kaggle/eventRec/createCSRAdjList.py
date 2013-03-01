@@ -38,6 +38,25 @@ def getAdjList(userFriendsFileName, testUsers, trainUsers):
 
 
 
+""" only keep the adjacency of these user's network """
+def trimAdjList(users, adjList):
+    #set of all connected users
+    connUsers = set([])
+    #initialize unexplored q with the list of users
+    unExpQ = users
+    while len(unExpQ) > 0:
+        user = unExpQ.pop()
+        connUsers.add(unExpQ)
+        for friend in adjList[user]:
+            if friend not in connUsers:
+                unExpQ.add(0, friend)
+    trimAdjList = {}
+    for user in connUsers:
+        trimAdjList[user] = adjList[user]
+
+    return trimAdjList
+        
+
 def writeAdjList(adjFileName, adjList):
     with open(adjFileName, 'w') as adjFile:
         adjWriter = csv.writer(adjFile)
@@ -119,9 +138,14 @@ def main():
 	print 'size of adjacency list: ', len(userAdjList)
 
         #write out the learned adjacency list
-        writeAdjList(adjFileName, userAdjList)
+        #writeAdjList(adjFileName, userAdjList)
         
-        writeCSRAdj(userAdjList, csrAdjMatFileName, csrIDMapFileName)
+        #writeCSRAdj(userAdjList, csrAdjMatFileName, csrIDMapFileName)
+
+        trimAdj = trimAdjList(trainUsersIds + testUsersIds, userAdjList)
+        print 'length of trimmed adjacency list: ', len(trimAdj)
+        
+        writeAdjList(adjFileName, userAdjList)
         
     else:
         print 'err: invalid args'
