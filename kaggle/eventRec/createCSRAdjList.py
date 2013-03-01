@@ -46,7 +46,7 @@ def trimAdjList(users, adjList):
     unExpQ = users
     while len(unExpQ) > 0:
         user = unExpQ.pop()
-        connUsers.add(unExpQ)
+        connUsers.add(user)
         for friend in adjList[user]:
             if friend not in connUsers:
                 unExpQ.add(0, friend)
