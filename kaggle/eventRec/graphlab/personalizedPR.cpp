@@ -50,7 +50,7 @@ bool lineParser(graph_type& graph, const std::string& fileName,	\
   std::stringstream strm(textLine);
 
   //vertex id of a node
-  graphlab::vertex_id vId;
+  graphlab::vertex_id_type vId;
 
   //userId of the node
   std::string userId;
@@ -60,7 +60,7 @@ bool lineParser(graph_type& graph, const std::string& fileName,	\
 
   //assign the name as vertex id
   //TODO: check if casting works
-  vId = name;
+  vId = (graphlab::vertex_id_type)(atoi(userId.c_str()));
 
   //insert this node
   graph.add_vertex(vId, User(userId));
@@ -70,9 +70,12 @@ bool lineParser(graph_type& graph, const std::string& fileName,	\
     //get other node id of outgoing edge
     graphlab::vertex_id_type otherNodeId;
     strm >> otherNodeId;
-    if (strm.fail()) break;
-    graph.add_edge(userId, otherNodeId)
+    if (strm.fail()) {
+      return false;
+    }
+    graph.add_edge(vId, otherNodeId);
   }
+  return true;
 }
 
 
@@ -83,7 +86,7 @@ bool lineParser(graph_type& graph, const std::string& fileName,	\
  * 
  */
 class PersPageRankProg:
-  public graphlab::isvertex_program<graph_type, double>,
+  public graphlab::ivertex_program<graph_type, double>,
   public graphlab::IS_POD_TYPE {
   
 private:
@@ -108,7 +111,7 @@ public:
 
   
   //use rank or propagated probabilities of adjacent nodes to update self rank
-  void apply(icontext_type& context, const vertex_type& vertex,\
+  void apply(icontext_type& context, vertex_type& vertex,\
 	     const gather_type& total) {
     
     //apply the total weighted by random walk prob
@@ -178,7 +181,7 @@ public:
 std::set<std::string> getUsersSet(std::string fileName) {
 
   std::set<std::string> strSet;
-  std::ifstream infile(fileName);
+  std::ifstream infile(fileName.c_str());
   std::string line;
   
   while (std::getline(infile, line)) {
@@ -191,7 +194,7 @@ std::set<std::string> getUsersSet(std::string fileName) {
 
 
 //reset vertices value after each iteration
-void resetVertex(graph_type:vertex_type& vertex)i {
+void resetVertex(graph_type::vertex_type& vertex) {
   vertex.data().pagerank = 0.0;
   if (vertex.data().userId.compare(START_USER) == 0) {
     vertex.data().pagerank = 1.0;
@@ -270,7 +273,7 @@ int main(int argc, char **argv) {
     engine.start();
     
     //save the information after applying the page rank iteration
-    graph.save(START_USER + "_oput", graph_writer(), false, true, false);
+    graph.save(START_USER + "_oput", GraphWriter(), false, true, false);
     
   }
   
