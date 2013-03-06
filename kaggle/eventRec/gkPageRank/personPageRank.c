@@ -1,8 +1,8 @@
-
-#include <stdio.h>
-
-//link the below file during compilation
 #include "GKlib.h"
+#include <stdio.h>
+#include <stdlib.h>
+//link the below file during compilation
+
 
 int getLineCount(char *fileName) {
   FILE *file;
@@ -77,7 +77,7 @@ int getTopSimUsers(gk_csr_t *adjMat, int user, gk_fkv_t *topUsers, int nsim) {
 
   pRanks = gk_fkvmalloc(count, "store page ranks");
   for (i = 0, j = 0; i < adjMat->nrows; i++) {
-    if (pr[i] > 0) {
+    if (pr[i] > 0 && i != user) {
       pRanks[j].key = pr[i];
       pRanks[j].val = i;
       j++;
@@ -114,7 +114,7 @@ int main(int argc, char *argv[]) {
   
   int minSimUsers;
 
-  if (argc < 2) {
+  if (argc < 4) {
     //not wnough arguments passed
     printf("\n Not enough arguments passed. \n");
     return -1;
@@ -122,21 +122,23 @@ int main(int argc, char *argv[]) {
   
   //parse commandline arguments
   ipCSRAdjFileName = argv[1];
-    
+  usersFileName = argv[2];
+  minSimUsers = atoi(argv[3]);
+  
   //read the adjacency matrix
   adjMat = gk_csr_Read(ipCSRAdjFileName, GK_CSR_FMT_CSR, 1, 0);
 
   //get the number of users
   numUsers = getLineCount(usersFileName);
-  users = getUsers(ipCSRAdjFileName, numUsers);
+  users = getUsers(usersFileName, numUsers);
 
-  topUsers = (int*) malloc(sizeof(int) * minSimUsers);
+  topUsers = (gk_fkv_t*) malloc(sizeof(gk_fkv_t) * minSimUsers);
   
   //apply the personalized page rank for each user
   for (i = 0; i < numUsers; i++) {
     //get the top rank vertices from personalized page rank iteration
     countTopUsers = getTopSimUsers(adjMat, users[i], topUsers, minSimUsers);
-
+    printf("Similar users for %d :\n", users[i]);
     //print the top users with corresponding pr
     for (j = 0; j < countTopUsers; j++) {
       printf("%8d \t %f\n", topUsers[j].val, topUsers[j].key);
