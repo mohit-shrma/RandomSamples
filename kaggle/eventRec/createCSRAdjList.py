@@ -1,7 +1,7 @@
 import sys
-import randomWalker as rw
+#import randomWalker as rw
 import csv
-import array
+#import array
 
 def getAdjList(userFriendsFileName, testUsers, trainUsers):
 
@@ -64,11 +64,29 @@ def writeAdjList(adjFileName, adjList):
             adjWriter.writerow([str(user), ' '.join(map(str, friends))])
 
 
+
+def convAdjToGraphlabAdj(userIdMap, gLabAdjFileName, userFriendsFileName):
+        with open(userFriendsFileName, 'rb') as userFrnFile:
+            with open(gLabAdjFileName, 'w') as gLabAdjFile:
+                userFReader = csv.reader(userFrnFile)
+                #skip header
+                userFReader.next()
+                for row in userFReader:
+                    user = int(row[0])
+                    userFriends = map(int, row[1].split())
+                    if len(userFriends) > 0:
+                        gLabAdjFile.write(str(userIdMap[user]))
+                        gLabAdjFile.write("\t" + str(len(userFriends)))
+                        for friend in userFriends:
+                            gLabAdjFile.write("\t" + str(userIdMap[friend]))
+                        gLabAdjFile.write('\n')
+                
+
 def convAdjToCSR(userFriendsFileName, csrAdjFileName, idMapFileName):
     userIdMap = {}
     revIdUserMap = {}
     userCount = 0
-    with open(userFriendsFileName, 'r') as userFrnFile:
+    with open(userFriendsFileName, 'rb') as userFrnFile:
         with open(csrAdjFileName, 'w') as csrAdjFile:
             with open(idMapFileName, 'w') as idMapFile:
                 userFReader = csv.reader(userFrnFile)
@@ -78,7 +96,7 @@ def convAdjToCSR(userFriendsFileName, csrAdjFileName, idMapFileName):
                     user = int(row[0])
                     if user not in userIdMap:
                         userIdMap[user] = userCount
-                        idMapFile.write(str(user) + "\t" + str(userCount))
+                        idMapFile.write(str(user) + "\t" + str(userCount) + '\n')
                         userCount += 1
 
                         
@@ -89,14 +107,14 @@ def convAdjToCSR(userFriendsFileName, csrAdjFileName, idMapFileName):
                     for friend in userFriends:
                         if friend not in userIdMap:
                             userIdMap[friend] = userCount
-                            idMapFile.write(str(friend) + "\t" + str(userCount))
+                            idMapFile.write(str(friend) + "\t" + str(userCount) + '\n')
                             userCount += 1
                             
                         #write friends in current row
                         csrAdjFile.write(" " + str(userIdMap[friend]))
 
                     csrAdjFile.write('\n')
-                    
+    return userIdMap                
                     
                 
 
@@ -150,14 +168,19 @@ def writeCSRAdj(userAdjList, csrAdjFileName, idMapFileName):
             
 
 
+    
 
 def main():
 
-    if len(sys.argv) > 3:
-        userFriendsFileName = sys.argv[0]
-        csrAdjMatFileName = sys.argv[1];
-        csrIdMapFileName = sys.argv[2];
-        convAdjToCSR(userFriendsFileName, csrAdjMatFileName, csrIdMapFileName)
+    if len(sys.argv) > 4:
+
+        userFriendsFileName = sys.argv[1]
+        csrAdjMatFileName = sys.argv[2];
+        csrIdMapFileName = sys.argv[3];
+        gLabAdjFileName = sys.argv[4];
+        
+        userIdMap = convAdjToCSR(userFriendsFileName, csrAdjMatFileName, csrIdMapFileName)
+        convAdjToGraphlabAdj(userIdMap, gLabAdjFileName, userFriendsFileName)
     else:
         print 'err: invalid args'
         
