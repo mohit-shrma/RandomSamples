@@ -64,6 +64,41 @@ def writeAdjList(adjFileName, adjList):
             adjWriter.writerow([str(user), ' '.join(map(str, friends))])
 
 
+def convAdjToCSR(userFriendsFileName, csrAdjFileName, idMapFileName):
+    userIdMap = {}
+    revIdUserMap = {}
+    userCount = 0
+    with open(userFriendsFileName, 'r') as userFrnFile:
+        with open(csrAdjFileName, 'w') as csrAdjFile:
+            with open(idMapFileName, 'w') as idMapFile:
+                userFReader = csv.reader(userFrnFile)
+                #skip header
+                userFReader.next()
+                for row in userFReader:
+                    user = int(row[0])
+                    if user not in userIdMap:
+                        userIdMap[user] = userCount
+                        idMapFile.write(str(user) + "\t" + str(userCount))
+                        userCount += 1
+
+                        
+                    #write the sparse current row, leading with username
+                    csrAdjFile.write(str(userIdMap[user]))
+
+                    userFriends = map(int, row[1].split())
+                    for friend in userFriends:
+                        if friend not in userIdMap:
+                            userIdMap[friend] = userCount
+                            idMapFile.write(str(friend) + "\t" + str(userCount))
+                            userCount += 1
+                            
+                        #write friends in current row
+                        csrAdjFile.write(" " + str(userIdMap[friend]))
+
+                    csrAdjFile.write('\n')
+                    
+                    
+                
 
 def writeCSRAdj(userAdjList, csrAdjFileName, idMapFileName):
     userIdMap = {}
@@ -118,35 +153,11 @@ def writeCSRAdj(userAdjList, csrAdjFileName, idMapFileName):
 
 def main():
 
-    if len(sys.argv) > 4:
-        
-        trainFileName = sys.argv[1]
-        testFileName = sys.argv[2]
-        userFriendsFileName = sys.argv[3]
-        csrAdjMatFileName = sys.argv[4];
-        csrIDMapFileName = sys.argv[5];
-        adjFileName = sys.argv[6]
-        
-        trainUsersIds = rw.getUsersList(trainFileName)
-        print 'unique train users: ', len(trainUsersIds)
-
-        #testUsersIds = [2399025474, 968336394, 1251857185]
-        testUsersIds = rw.getUsersList(testFileName)
-        print 'unique test users: ', len(testUsersIds)
-        
-        userAdjList = getAdjList(userFriendsFileName, testUsersIds, trainUsersIds)
-	print 'size of adjacency list: ', len(userAdjList)
-
-        #write out the learned adjacency list
-        #writeAdjList(adjFileName, userAdjList)
-        
-        #writeCSRAdj(userAdjList, csrAdjMatFileName, csrIDMapFileName)
-
-        trimAdj = trimAdjList(trainUsersIds + testUsersIds, userAdjList)
-        print 'length of trimmed adjacency list: ', len(trimAdj)
-        
-        writeAdjList(adjFileName, userAdjList)
-        
+    if len(sys.argv) > 3:
+        userFriendsFileName = sys.argv[0]
+        csrAdjMatFileName = sys.argv[1];
+        csrIdMapFileName = sys.argv[2];
+        convAdjToCSR(userFriendsFileName, csrAdjMatFileName, csrIdMapFileName)
     else:
         print 'err: invalid args'
         
