@@ -114,6 +114,8 @@ int main(int argc, char *argv[]) {
   
   int minSimUsers;
 
+  char *opFile = "GraphRead.txt";
+  
   if (argc < 4) {
     //not wnough arguments passed
     printf("\n Not enough arguments passed. \n");
@@ -127,7 +129,8 @@ int main(int argc, char *argv[]) {
   
   //read the adjacency matrix
   adjMat = gk_csr_Read(ipCSRAdjFileName, GK_CSR_FMT_CSR, 0, 0);
-
+  gk_csr_Write(adjMat, opFile, GK_CSR_FMT_CSR, 0, 0);
+    
   //get the number of users
   numUsers = getLineCount(usersFileName);
   users = getUsers(usersFileName, numUsers);
