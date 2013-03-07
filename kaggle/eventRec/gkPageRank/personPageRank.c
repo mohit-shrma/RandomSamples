@@ -126,7 +126,7 @@ int main(int argc, char *argv[]) {
   minSimUsers = atoi(argv[3]);
   
   //read the adjacency matrix
-  adjMat = gk_csr_Read(ipCSRAdjFileName, GK_CSR_FMT_CSR, 1, 0);
+  adjMat = gk_csr_Read(ipCSRAdjFileName, GK_CSR_FMT_CSR, 0, 0);
 
   //get the number of users
   numUsers = getLineCount(usersFileName);
