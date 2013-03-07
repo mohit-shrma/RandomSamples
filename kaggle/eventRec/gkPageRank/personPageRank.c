@@ -88,6 +88,9 @@ int getTopSimUsers(gk_csr_t *adjMat, int user, gk_fkv_t *topUsers, int nsim) {
   gk_dfkvkselect(count, nsim, pRanks);
   gk_fkvsortd(nsim, pRanks);
   gk_fkvcopy(nsim, pRanks, topUsers);
+  
+  free(pr);
+
   return nsim;
 }
 
@@ -126,11 +129,13 @@ int main(int argc, char *argv[]) {
   ipCSRAdjFileName = argv[1];
   usersFileName = argv[2];
   minSimUsers = atoi(argv[3]);
-  
+
+  printf("\nBuilding adjacency matrix...\n");
   //read the adjacency matrix
   adjMat = gk_csr_Read(ipCSRAdjFileName, GK_CSR_FMT_CSR, 0, 0);
-  gk_csr_Write(adjMat, opFile, GK_CSR_FMT_CSR, 0, 0);
+  //gk_csr_Write(adjMat, opFile, GK_CSR_FMT_CSR, 0, 0);
     
+  printf("\nMatrix building completed...\n");
   //get the number of users
   numUsers = getLineCount(usersFileName);
   users = getUsers(usersFileName, numUsers);
