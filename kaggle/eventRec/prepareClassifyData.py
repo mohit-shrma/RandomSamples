@@ -411,11 +411,11 @@ def getSimUsersDic(simUserFileName):
         simUserReader = csv.reader(simUserFile, delimiter = '\t')
         for row in simUserReader:
             userId = int(row[0])
-            friendPRank = []
+            friendPRanks = []
             for friendPRank in row[1:]:
                 (friend, pRank) = friendPRank.split(':')
-                friendPRank.append((int(friend), float(pRank)))
-            simUsersDic[userId] = friendPRank
+                friendPRanks.append((int(friend), float(pRank)))
+            simUsersDic[userId] = friendPRanks
     return simUsersDic
 
 
