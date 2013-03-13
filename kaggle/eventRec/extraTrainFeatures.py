@@ -25,6 +25,7 @@ def getEvents(eventFileName):
     return events
 
 
+
 def getEventCount(fileName):
     #contains event count
     #{user: count}
@@ -115,7 +116,8 @@ def getExtraFeatures(fileName, eventAttendeesDic, simUsersDic, \
                             'simMaybe', 'simInv', 'popYes', 'popNo',\
                             'popMaybe', 'popInv']"""
         headersTitle = ['user', 'event',  'simYes', 'simNo', 'simMaybe',\
-                            'simInv']
+                            'simInv', 'simYCount', 'simNCount', 'simMCount',\
+                            'simICount']
         #write headers
         featureWriter.writerow(headersTitle)
         
@@ -161,6 +163,14 @@ def getExtraFeatures(fileName, eventAttendeesDic, simUsersDic, \
                                                   userId, eventId)
             features.extend([weightDic['yes'], weightDic['no'], \
                                   weightDic['maybe'], weightDic['inv']])
+
+            #get attendees count from similar users
+            simUsersSet = set([value[1] for value in simUsersDic.values()])
+            (yesSimCount, maybeSimCount, invitedSimCount, noSimCount) = \
+                getEventAtnCount(simUsersSet, eventAttendeesDic[eventId])
+            features.extend([yesSimCount, noSimCount, maybeSimCount,\
+                                 invitedSimCount])
+            
             """
             #get event popularity
             (yesCount, noCount, maybeCount, invCount) = \
