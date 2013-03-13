@@ -1,7 +1,24 @@
 import sys
-#import randomWalker as rw
 import csv
-#import array
+
+
+
+def getUsersList(fileName):
+    users = set([])
+    with open(fileName, 'r') as usersFile:
+        header = usersFile.readline()
+        for line in usersFile:
+            line = line.strip()
+            cols = line.split(',')
+            user = cols[0]
+            if len(user) > 0 :
+                user = int(user)
+                if user not in users:
+                    users.add(user)
+    return users
+
+
+
 
 def getAdjList(userFriendsFileName, testUsers, trainUsers):
 
@@ -98,7 +115,10 @@ def convAdjToCSR(userFriendsFileName, csrAdjFileName, idMapFileName):
                         userIdMap[user] = userCount
                         idMapFile.write(str(user) + "\t" + str(userCount) + '\n')
                         userCount += 1
-
+                    
+                    userFriends = map(int, row[1].split())
+                    if len(userFriends) == 0:
+                        continue
                         
                     #write the sparse current row, leading with username
                     csrAdjFile.write(str(userIdMap[user]))
@@ -116,7 +136,35 @@ def convAdjToCSR(userFriendsFileName, csrAdjFileName, idMapFileName):
                     csrAdjFile.write('\n')
     return userIdMap                
                     
-                
+
+
+def saveFullAdjList(adjList, csrAdjFileName, idMapFileName):
+    userIdMap = {}
+    revIdUserMap = {}
+    userCount = 0
+    with open(csrAdjFileName, 'w') as csrAdjFile:
+        with open(idMapFileName, 'w') as idMapFile:
+            for user, userFriends in adjList.iteritems():
+                if user not in userIdMap:
+                    userIdMap[user] = userCount
+                    idMapFile.write(str(user) + "\t" + str(userCount) + '\n')
+                    userCount += 1
+                    
+                #write the sparse current row, leading with username
+                csrAdjFile.write(str(userIdMap[user]))
+
+                for friend in userFriends:
+                    if friend not in userIdMap:
+                        userIdMap[friend] = userCount
+                        idMapFile.write(str(friend) + "\t" + str(userCount) + '\n')
+                        userCount += 1
+                            
+                    #write friends in current row
+                    csrAdjFile.write(" " + str(userIdMap[friend]))
+
+                csrAdjFile.write('\n')
+    return userIdMap                
+
 
 def writeCSRAdj(userAdjList, csrAdjFileName, idMapFileName):
     userIdMap = {}
@@ -175,12 +223,19 @@ def main():
     if len(sys.argv) > 4:
 
         userFriendsFileName = sys.argv[1]
-        csrAdjMatFileName = sys.argv[2];
-        csrIdMapFileName = sys.argv[3];
-        gLabAdjFileName = sys.argv[4];
-        
-        userIdMap = convAdjToCSR(userFriendsFileName, csrAdjMatFileName, csrIdMapFileName)
-        convAdjToGraphlabAdj(userIdMap, gLabAdjFileName, userFriendsFileName)
+        testUsersFileName = sys.argv[2];
+        trainUsersFileName = sys.argv[3];
+        adjFileName = sys.argv[4];
+        idMapFileName = sys.argv[5];
+
+        #userIdMap = convAdjToCSR(userFriendsFileName, csrAdjMatFileName, csrIdMapFileName)
+        #convAdjToGraphlabAdj(userIdMap, gLabAdjFileName, userFriendsFileName)
+
+        adjList = getAdjList(userFriendsFileName, \
+                                 getUsersList(trainUsersFileName),\
+                                 getUsersList(testUsersFileName))
+        print 'prepared adjacency... users: ', len(adjList)
+        saveFullAdjList(adjList, adjFileName, idMapFileName)
     else:
         print 'err: invalid args'
         
