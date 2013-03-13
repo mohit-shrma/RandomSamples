@@ -29,8 +29,8 @@ def getEventCount(fileName):
     #contains event count
     #{user: count}
     eventCount = {}
-    with open(fileName, 'r') as file:
-        fReader = csv.reader(file)
+    with open(fileName, 'r') as eventFile:
+        fReader = csv.reader(eventFile)
         #skip header
         fReader.next()
         for row in fReader:
@@ -39,6 +39,32 @@ def getEventCount(fileName):
                 eventCount[user] = 0
             eventCount[user] += 1
     return eventCount
+
+
+
+""" compute weighted PRank for similar users '{user:[(simUser, pRank)]}'responses """
+def getWeightedResponseWt(eventAttendeesDic, simUsersDic, userId, eventId):
+    #get event attendees
+    yesAtn = set((eventAttendeesDic[eventId])[EVENT_ATTN.YES_COL - 1])
+    noAtn = set((eventAttendeesDic[eventId])[EVENT_ATTN.NO_COL - 1])
+    mayBeAtn = set((eventAttendeesDic[eventId])[EVENT_ATTN.MAYBE_COL - 1])
+    invAtn = set((eventAttendeesDic[eventId])[EVENT_ATTN.INVITED_COL - 1])
+    
+    #get wt of respnses for similar users
+    weightDic = {'yes':0, 'no':0, 'maybe':0, 'inv':0}
+    
+    for (simUser, pRank) in simUsersDic[userId]:
+        if simUser in yesAtn:
+            weightDic['yes'] += pRank
+        elif simUser in noAtn:
+            weightDic['no'] += pRank
+        elif simUser in mayBeAtn:
+            weightDic['maybe'] += pRank
+        elif simUser in invAtn:
+            weightDic['inv'] += pRank
+
+    return weightDic
+    
 
 
 def getEventPopularity(eventId, eventAttendeesDic):
@@ -64,7 +90,7 @@ def getEventDetailsFromDic(eventsDic, eventId):
 
 
 
-def getExtraFeatures(fileName, eventAttendeesDic, \
+def getExtraFeatures(fileName, eventAttendeesDic, simUsersDic, \
                          usersFileName, featureOpFileName, eventsDic):
     
     print 'getting events count...', strftime("%Y-%m-%d %H:%M:%S", gmtime())
@@ -72,8 +98,10 @@ def getExtraFeatures(fileName, eventAttendeesDic, \
 
     with open(fileName, 'rb') as trainFile,\
             open(featureOpFileName, 'w') as featureOpFile:
+
         trainReader = csv.reader(trainFile)
         featureWriter = csv.writer(featureOpFile)
+
         #skip header
         trainReader.next()
         prevUserId = ''
@@ -82,10 +110,12 @@ def getExtraFeatures(fileName, eventAttendeesDic, \
         eventFeatureDic = {}
 
         #write header for feature output file
-        headersTitle = ['user', 'event', 'deltaStartJoin', 'deltaStartShown',\
-                            'deltaShownJoin', 'eventCount', 'popYes', 'popNo',\
-                            'popMaybe', 'popInv']
-        
+        """headersTitle = ['user', 'event', 'deltaStartJoin', 'deltaStartShown',\
+                            'deltaShownJoin', 'eventCount', 'simYes', 'simNo',\
+                            'simMaybe', 'simInv', 'popYes', 'popNo',\
+                            'popMaybe', 'popInv']"""
+        headersTitle = ['user', 'event',  'simYes', 'simNo', 'simMaybe',\
+                            'simInv']
         #write headers
         featureWriter.writerow(headersTitle)
         
@@ -99,6 +129,8 @@ def getExtraFeatures(fileName, eventAttendeesDic, \
             features.append(userId)
             eventId = int(row[TRAIN_CONSTS.EVENT_COL].strip())
             features.append(eventId)
+
+            """
             userShownTime = time.mktime(parse(\
                                row[TRAIN_CONSTS.TIMESTAMP_COL]).timetuple())
 
@@ -117,18 +149,27 @@ def getExtraFeatures(fileName, eventAttendeesDic, \
                                               eventStartTime, joinedAt,\
                                                   userShownTime)
             features.extend([deltaStartJoin, deltaStartShown, deltaShownJoin])
+
             
             #get number of events by user in current file
             userEvCount = eventCount[userId]
             features.append(userEvCount)
-            
+            """
+
+            #get response based on similarity
+            weightDic = getWeightedResponseWt(eventAttendeesDic, simUsersDic,\
+                                                  userId, eventId)
+            features.extend([weightDic['yes'], weightDic['no'], \
+                                  weightDic['maybe'], weightDic['inv']])
+            """
             #get event popularity
             (yesCount, noCount, maybeCount, invCount) = \
                 getEventPopularity(eventId, eventAttendeesDic)
             features.extend([yesCount, noCount, maybeCount, invCount])
-            
+            """
+
             features = map(str, features)
-            
+        
             #write features
             featureWriter.writerow(features)
 
@@ -136,8 +177,9 @@ def getExtraFeatures(fileName, eventAttendeesDic, \
                 print '100 done...', strftime("%Y-%m-%d %H:%M:%S", gmtime())
 
 
-def extraFeatureWorker((fileName, featureOutFileName, usersFileName, eventAttendeesDic, eventsDic)):
-    getExtraFeatures(fileName, eventAttendeesDic, \
+def extraFeatureWorker((fileName, featureOutFileName, usersFileName,\
+                            eventAttendeesDic, simUsersDic,  eventsDic)):
+    getExtraFeatures(fileName, eventAttendeesDic, simUsersDic,\
                          usersFileName, featureOutFileName, eventsDic)
 
 
@@ -170,16 +212,17 @@ def main():
         print 'reading events file...', strftime("%Y-%m-%d %H:%M:%S", gmtime())
         eventsDic = getEvents(modEventFileName)
 
+        simUsersDic = getSimUsersDic(simUserFileName)
         
         extraFeatureWorker((trainFileName, trainFeatureOutFileName,\
                                 usersFileName, eventAttendeesDic,\
-                                eventsDic)) 
+                                simUsersDic, eventsDic)) 
 
         extraFeatureWorker((testFileName, \
                                 testFeatureOutFileName,\
                                 usersFileName,\
                                 eventAttendeesDic,\
-                                eventsDic))
+                                simUsersDic, eventsDic))
         
     else:
         print 'err: insuff arguments'

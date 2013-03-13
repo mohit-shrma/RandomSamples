@@ -101,6 +101,7 @@ def getFirstColSet(fileName):
             firstColSet.add(int(row[0]))
     return firstColSet
 
+
 def getUserCharacteristics(user, usersFileName):
     with open(usersFileName, 'r') as usersFile:
         header = usersFile.readline()
@@ -403,15 +404,18 @@ def prepDataFeature(trainFileName, eventAttendeesDic, simUsersDic,\
 
     
 #get similar users from the file
+#{user : [(simUser, prank)]}
 def getSimUsersDic(simUserFileName):
     simUsersDic = {}
     with open(simUserFileName, 'r') as simUserFile:
-        for line in simUserFile:
-            line = line.strip()
-            cols = line.split('\t')
-            user = int(cols[0])
-            simUsers = map(int, cols[1:])
-            simUsersDic[user] = simUsers
+        simUserReader = csv.reader(simUserFile, delimiter = '\t')
+        for row in simUserReader:
+            userId = int(row[0])
+            friendPRank = []
+            for friendPRank in row[1:]:
+                (friend, pRank) = friendPRank.split(':')
+                friendPRank.append((int(friend), float(pRank)))
+            simUsersDic[userId] = friendPRank
     return simUsersDic
 
 
@@ -446,7 +450,6 @@ def createAdjList(userFriendsFileName, testUsers, trainUsers):
                 
     return userAdjList
 
-            
 
 def main():
     if len(sys.argv) > 9:
