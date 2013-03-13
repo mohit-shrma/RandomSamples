@@ -64,18 +64,20 @@ int getTopSimUsers(gk_csr_t *adjMat, int user, gk_fkv_t *topUsers, int nsim) {
   
   //initialize the restart distribution for user
   pr[user] = 1.0;
-  iter = gk_rw_PageRank(adjMat, 0.5, 0.0001, 100, pr);
-
+  iter = gk_rw_PageRank(adjMat, 0.5, 0.000001, 100, pr);
+  fprintf(stderr, "Iter: %d\n", iter);
   count = 0;
   
   //count the non-zero values in pr and sort them
   for (i = 0; i < adjMat->nrows; i++) {
-    if (pr[i] > 0) {
+    if (pr[i] > 0 && i != user) {
       count++;
     }
   }
-
+  
+  //printf("Found %d similar users.\n", count);
   pRanks = gk_fkvmalloc(count, "store page ranks");
+
   for (i = 0, j = 0; i < adjMat->nrows; i++) {
     if (pr[i] > 0 && i != user) {
       pRanks[j].key = pr[i];
@@ -90,6 +92,7 @@ int getTopSimUsers(gk_csr_t *adjMat, int user, gk_fkv_t *topUsers, int nsim) {
   gk_fkvcopy(nsim, pRanks, topUsers);
   
   free(pr);
+  free(pRanks);
 
   return nsim;
 }
@@ -97,13 +100,16 @@ int getTopSimUsers(gk_csr_t *adjMat, int user, gk_fkv_t *topUsers, int nsim) {
 
 int main(int argc, char *argv[]) {
 
-  int i, j, countTopUsers;
+  int i, j, k, countTopUsers;
   
   //file containing matrix of form CSR
   char *ipCSRAdjFileName;
 
   //list of users on which to apply page rank
   char *usersFileName;
+
+  //number of cpus
+  int cpucount;
 
   //to store graph adjacency matrix
   gk_csr_t *adjMat;
@@ -113,8 +119,9 @@ int main(int argc, char *argv[]) {
   //araay of user id
   int *users;
 
-  gk_fkv_t *topUsers;
-  
+  gk_fkv_t **topUsers;
+  int *topUserCount;
+
   int minSimUsers;
 
   char *opFile = "GraphRead.txt";
@@ -129,29 +136,57 @@ int main(int argc, char *argv[]) {
   ipCSRAdjFileName = argv[1];
   usersFileName = argv[2];
   minSimUsers = atoi(argv[3]);
+  cpucount = atoi(argv[4]);
 
-  printf("\nBuilding adjacency matrix...\n");
+  //printf("\nBuilding adjacency matrix...\n");
   //read the adjacency matrix
   adjMat = gk_csr_Read(ipCSRAdjFileName, GK_CSR_FMT_CSR, 0, 0);
   //gk_csr_Write(adjMat, opFile, GK_CSR_FMT_CSR, 0, 0);
     
-  printf("\nMatrix building completed...\n");
+  fprintf(stderr, "\nMatrix building completed...\n");
   //get the number of users
   numUsers = getLineCount(usersFileName);
   users = getUsers(usersFileName, numUsers);
+  
+  //maintain storage of top similar users of cpucount users
+  topUsers = (gk_fkv_t**) malloc(sizeof(gk_fkv_t*) * cpucount);
+  for (i = 0; i < cpucount; i++) {
+    topUsers[i] = (gk_fkv_t*) malloc(sizeof(gk_fkv_t) * minSimUsers);
+  }
 
-  topUsers = (gk_fkv_t*) malloc(sizeof(gk_fkv_t) * minSimUsers);
+  //storage for top users count of chunk
+  topUserCount = (int *) malloc(sizeof(int) * cpucount);
   
   //apply the personalized page rank for each user
-  for (i = 0; i < numUsers; i++) {
-    //get the top rank vertices from personalized page rank iteration
-    countTopUsers = getTopSimUsers(adjMat, users[i], topUsers, minSimUsers);
-    printf("Similar users for %d :\n", users[i]);
-    //print the top users with corresponding pr
-    for (j = 0; j < countTopUsers; j++) {
-      printf("%8d \t %f\n", topUsers[j].val, topUsers[j].key);
+  for (i = 0; i < numUsers; i+=cpucount) {
+
+#pragma omp parallel default(none) private(j) shared(users, topUsers, topUserCount, adjMat) \
+  firstprivate(i, minSimUsers, numUsers, cpucount)
+    {
+#pragma omp for
+      for (j = 0; j < cpucount; j++) {
+	if (i+j < numUsers) {
+	  //find top users for users[i+j]
+	  //get the top rank vertices from personalized page rank iteration	
+	  topUserCount[j] = getTopSimUsers(adjMat, users[i+j], topUsers[j], minSimUsers);
+	}
+      }
+    }
+
+    //write the values for users chunks
+    for (j = 0; j < cpucount; j++) {
+      if (i+j < numUsers) {
+	//user 
+	printf("%d", users[i+j]);
+	for (k = 0; k < topUserCount[j]; k ++) {
+	  //print the top similar users with corresponding pr
+	  printf("\t%d:%f", topUsers[j][k].val, topUsers[j][k].key);
+	}
+	printf("\n");
+      }
     }
     
+
   }
     
   return 0;
