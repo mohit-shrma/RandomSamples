@@ -194,6 +194,26 @@ def extraFeatureWorker((fileName, featureOutFileName, usersFileName,\
 
 
 
+""" get the list of events attended by each user i.e. indicated 'yes' """
+def getUserEventsDic(eventAttendeesDic):
+    userEventsDic = {}
+    for event, attendees in eventAttendeesDic.iteritems():
+        for user in attendees[EVENT_ATTN.YES_COL - 1]:
+            if user not in userEventsDic:
+                userEventsDic[user] = set([])
+            userEventsDic[user].add(event)
+    return userEventsDic
+
+
+
+def writeUserEventsDic(userEventsDic, userEventsFileName):
+    with open(userEventsFileName, 'w') as userEventsFile:
+        for user, events in userEventsDic:
+            eventsStr = ' '.join(map(str, events))
+            userEventsFile.write(str(user) + ',' + eventsStr)
+            
+
+
 def main():
     if len(sys.argv) > 9:
         trainFileName = sys.argv[1]
@@ -203,8 +223,9 @@ def main():
         usersFileName = sys.argv[5]
         simUserFileName = sys.argv[6]
         userFriendsFileName  = sys.argv[7]
-        trainFeatureOutFileName = sys.argv[8]
-        testFeatureOutFileName = sys.argv[9]
+        userEventsFileName = sys.argv[8]
+        trainFeatureOutFileName = sys.argv[9]
+        testFeatureOutFileName = sys.argv[10]
         
         #trainUsersSet = getFirstColSet(trainFileName)
         #testUsersSet = getFirstColSet(testFileName)
@@ -214,9 +235,13 @@ def main():
         print 'get event attendees dic...', strftime("%Y-%m-%d %H:%M:%S", gmtime())
         eventAttendeesDic = getEventAttendees(eventAttFileName)
 
+        print 'building user events dic...', strftime("%Y-%m-%d %H:%M:%S", gmtime())
+        userEventsDic = getUserEventsDic(eventAttendeesDic)
+        writeUserEventsDic(userEventsDic, userEventsFileName)
+
         #simUsersDic = getSimUsersDic(simUserFileName)
         #adjList = createAdjList(userFriendsFileName, testUsersSet, trainUsersSet)
-
+        """
         modEventFileName = getModdedName(eventsFileName)
         
         print 'reading events file...', strftime("%Y-%m-%d %H:%M:%S", gmtime())
@@ -233,7 +258,7 @@ def main():
                                 usersFileName,\
                                 eventAttendeesDic,\
                                 simUsersDic, eventsDic))
-        
+        """
     else:
         print 'err: insuff arguments'
 
