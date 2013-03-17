@@ -4,6 +4,7 @@ import time
 from dateutil.parser import parse
 from prepareClassifyData import *
 from time import gmtime, strftime
+from multiprocessing import Process, Manager, Pool
 
 
 def getTimeDeltas(eventStart, userJoined, userShown):
@@ -208,10 +209,64 @@ def getUserEventsDic(eventAttendeesDic):
 
 def writeUserEventsDic(userEventsDic, userEventsFileName):
     with open(userEventsFileName, 'w') as userEventsFile:
-        for user, events in userEventsDic:
+        for user, events in userEventsDic.iteritems():
             eventsStr = ' '.join(map(str, events))
-            userEventsFile.write(str(user) + ',' + eventsStr)
+            userEventsFile.write(str(user) + ',' + eventsStr +'\n')
             
+
+def getJacSimUser((userIdx, sharedUserEventsAtn)):
+    simDic = {}
+    if userIdx < len(sharedUserEventsAtn):
+        for j in range(userIdx+1, len(sharedUserEventsAtn)):
+            #find the intersecting events b/w user i and user j
+            unionEvCount = len(sharedUserEventsAtn[i][1] | sharedUserEventsAtn[j][1])
+            interEvCount = len(sharedUserEventsAtn[i][1] & sharedUserEventsAtn[j][1])
+            if interEvCount > 0:
+                simDic[sharedUserEventsAtn[j][0]] = float(interEvCount)/unionEvCount
+    return simDic
+
+
+
+#will write user, user, 'event co-attendance jaccard sim'
+def writeUserEventsJacc(userEventsDic, userEventsJacFileName, chunkSize=16):
+    userEventsAtn = []
+    for user, events in userEventsDic.iteritems():
+        userEventsAtn.append((user, set(events)))
+    
+    manager = Manager()
+    sharedUserEventsAtn = manager.list(userEventsAtn)
+    sharedUserEventsAtn.extend(userEventsAtn)
+
+    with open(userEventsJacFileName, 'w') as userEvJacFile:
+        for i in range(0, len(userEventsAtn), chunkSize):
+            pool = Pool(processes=chunkSize)
+            workIdx = range(i, i+chunkSize)
+            workerArgs = map(lambda x : (x, sharedUserEventsAtn), workIdx)
+            simDics = pool.map(getJacSimUser, workerArgs)
+            pool.close()
+            pool.join()
+            for idx in range(i, i+chunkSize):
+                #write similar user for userEventsAtn[idx]
+                
+                if len(simDics[idx-i]) > 0:
+                    userEvJacFile.write(str(userEventsAtn[idx][0])
+                    for simUser, jacSim in (simDics[idx-i]).iteritems():
+                        userEvJacFile.write(' ' + str(simUser) + ' '\
+                                                + str(jacSim))    
+                userEvJacFile.write('\n')
+
+            """
+            for j in range(i+1, len(userEventsAtn)):
+                #find the intersecting events b/w user i and user j
+                unionEvCount = len(userEventsAtn[i][1] | userEventsAtn[j][1])
+                interEvCount = len(userEventsAtn[i][1] & userEventsAtn[j][1])
+                if interEvCount > 0:
+                    userEvJacFile.write(str(userEventsAtn[i][0]) + ','\
+                                            + str(userEventsAtn[j][0])\
+                                            + ','\
+                                            + str(float(interEvCount)/unionEvCount)\
+                                            + '\n')"""
+
 
 
 def main():
@@ -237,7 +292,8 @@ def main():
 
         print 'building user events dic...', strftime("%Y-%m-%d %H:%M:%S", gmtime())
         userEventsDic = getUserEventsDic(eventAttendeesDic)
-        writeUserEventsDic(userEventsDic, userEventsFileName)
+        writeUserEventsJacc(userEventsDic, userEventsFileName)
+        #writeUserEventsDic(userEventsDic, userEventsFileName)
 
         #simUsersDic = getSimUsersDic(simUserFileName)
         #adjList = createAdjList(userFriendsFileName, testUsersSet, trainUsersSet)
