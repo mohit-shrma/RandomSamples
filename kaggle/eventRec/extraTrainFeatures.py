@@ -219,8 +219,8 @@ def getJacSimUser((userIdx, sharedUserEventsAtn)):
     if userIdx < len(sharedUserEventsAtn):
         for j in range(userIdx+1, len(sharedUserEventsAtn)):
             #find the intersecting events b/w user i and user j
-            unionEvCount = len(sharedUserEventsAtn[i][1] | sharedUserEventsAtn[j][1])
-            interEvCount = len(sharedUserEventsAtn[i][1] & sharedUserEventsAtn[j][1])
+            unionEvCount = len(sharedUserEventsAtn[userIdx][1] | sharedUserEventsAtn[j][1])
+            interEvCount = len(sharedUserEventsAtn[userIdx][1] & sharedUserEventsAtn[j][1])
             if interEvCount > 0:
                 simDic[sharedUserEventsAtn[j][0]] = float(interEvCount)/unionEvCount
     return simDic
@@ -249,7 +249,7 @@ def writeUserEventsJacc(userEventsDic, userEventsJacFileName, chunkSize=16):
                 #write similar user for userEventsAtn[idx]
                 
                 if len(simDics[idx-i]) > 0:
-                    userEvJacFile.write(str(userEventsAtn[idx][0])
+                    userEvJacFile.write(str(userEventsAtn[idx][0]))
                     for simUser, jacSim in (simDics[idx-i]).iteritems():
                         userEvJacFile.write(' ' + str(simUser) + ' '\
                                                 + str(jacSim))    
