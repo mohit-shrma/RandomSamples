@@ -222,19 +222,15 @@ def writeJacSimToCSR(userJacSimFileName, userIdMap, csrJacFileName):
 
         for row in jacSimReader:
             user = int(row[0])
+            jacSimUsers.add(user)
+            if user not in jacSimUserDic:
+                jacSimUserDic[user] = []
             for i in range(1, len(row)):
-                neighbor , jacSim = 
-
-            user2 = int(row[1])
-            jacSim = float(row[2])
-            if user1 not in jacSimUserDic:
-                jacSimUserDic[user1] = []
-            if user2 not in jacSimUserDic:
-                jacSimUserDic[user2] = []
-            jacSimUserDic[user1].append((user2, jacSim))
-            jacSimUserDic[user2].append((user1, jacSim))
-            jacSimUsers.add(user1)
-            jacSimUsers.add(user2)
+                [neighbor, jacSim] = row[i].split(':')
+                jacSimUsers.add(neighbor)
+                if neigbor not in jacSimUserDic:
+                    jacSimUserDic[neigbor] = []
+                jacSimUserDic[user].append((neighbor, jacSim))
 
         for user, jacUsers in jacSimUserDic.iteritems():
             csrJacFile.write(str(user))
