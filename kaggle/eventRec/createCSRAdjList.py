@@ -19,7 +19,6 @@ def getUsersList(fileName):
 
 
 
-
 def getAdjList(userFriendsFileName, testUsers, trainUsers):
 
     #contain mapping for user to friends
@@ -54,7 +53,6 @@ def getAdjList(userFriendsFileName, testUsers, trainUsers):
     return userAdjList
 
 
-
 """ only keep the adjacency of these user's network """
 def trimAdjList(users, adjList):
     #set of all connected users
@@ -79,7 +77,6 @@ def writeAdjList(adjFileName, adjList):
         adjWriter = csv.writer(adjFile)
         for user, friends in adjList.iteritems():
             adjWriter.writerow([str(user), ' '.join(map(str, friends))])
-
 
 
 def convAdjToGraphlabAdj(userIdMap, gLabAdjFileName, userFriendsFileName):
@@ -136,7 +133,6 @@ def convAdjToCSR(userFriendsFileName, csrAdjFileName, idMapFileName):
                     csrAdjFile.write('\n')
     return userIdMap                
                     
-
 
 def saveFullAdjList(adjList, csrAdjFileName, idMapFileName):
     userIdMap = {}
@@ -215,8 +211,42 @@ def writeCSRAdj(userAdjList, csrAdjFileName, idMapFileName):
             print 'User with friends: ' + str(len(userIdMap))
             
 
+def writeJacSimToCSR(userJacSimFileName, userIdMap, csrJacFileName):
+    with open(userJacSimFileName, 'r') as userJacSimFile, \
+            open(csrJacFileName, 'w') as csrJacFile:
+        jacSimReader = csv.reader(userJacSimFile)
+        #record user for which jaccard sim found
+        jacSimUsers = set([])
+        #jacSimUserDic,  
+        jacSimUserDic = {}
 
-    
+        for row in jacSimReader:
+            user = int(row[0])
+            for i in range(1, len(row)):
+                neighbor , jacSim = 
+
+            user2 = int(row[1])
+            jacSim = float(row[2])
+            if user1 not in jacSimUserDic:
+                jacSimUserDic[user1] = []
+            if user2 not in jacSimUserDic:
+                jacSimUserDic[user2] = []
+            jacSimUserDic[user1].append((user2, jacSim))
+            jacSimUserDic[user2].append((user1, jacSim))
+            jacSimUsers.add(user1)
+            jacSimUsers.add(user2)
+
+        for user, jacUsers in jacSimUserDic.iteritems():
+            csrJacFile.write(str(user))
+            for (jacUser, jacSim) in jacUsers:
+                csrJacFile.write(' ' + str(jacUsers ) + ' ' +str(jacSim))
+            csrJacFile.write('\n')
+
+        for user in userIdMap.keys():
+            if user not in jacSimUsers:
+                csrJacFile.write(user + '\n')
+        
+                
 
 def main():
 
