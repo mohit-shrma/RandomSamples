@@ -4,7 +4,21 @@ import time
 from dateutil.parser import parse
 from prepareClassifyData import *
 from time import gmtime, strftime
+import multiprocessing
 from multiprocessing import Process, Manager, Pool
+import logging
+
+
+def getEventLabelDic(eventLabelFileName):
+    eventLabelDic = {}
+    with open(eventLabelFileName, 'r') as eventLabelFile:
+        eventLabelReader = csv.reader(eventLabelFile)
+        #skip header
+        eventLabelReader.next()
+        for row in eventLabelReader:
+            eventLabelDic[int(row[0])] = int(row[1])
+    return eventLabelDic
+
 
 
 def getTimeDeltas(eventStart, userJoined, userShown):
@@ -66,7 +80,6 @@ def getWeightedResponseWt(eventAttendeesDic, simUsersDic, userId, eventId):
             weightDic['inv'] += pRank
 
     return weightDic
-    
 
 
 def getEventPopularity(eventId, eventAttendeesDic):
@@ -75,7 +88,6 @@ def getEventPopularity(eventId, eventAttendeesDic):
     maybeCount = len((eventAttendeesDic[eventId])[EVENT_ATTN.MAYBE_COL - 1])
     invCount = len((eventAttendeesDic[eventId])[EVENT_ATTN.INVITED_COL - 1])
     return (yesCount, noCount, maybeCount, invCount)
-
 
 
 def getEventDetailsFromDic(eventsDic, eventId):
@@ -90,102 +102,129 @@ def getEventDetailsFromDic(eventsDic, eventId):
     return (eventCreator, eventLoc, eventLat, eventLong, eventStartTime)
 
 
-
-
 def getExtraFeatures(fileName, eventAttendeesDic, simUsersDic, \
-                         usersFileName, featureOpFileName, eventsDic):
+                         usersFileName, featureOpFileName, eventsDic,\
+                         userEventsDic, eventLabelDic, adjList):
     
     print 'getting events count...', strftime("%Y-%m-%d %H:%M:%S", gmtime())
     eventCount = getEventCount(fileName)
 
-    with open(fileName, 'rb') as trainFile,\
-            open(featureOpFileName, 'w') as featureOpFile:
+    with open(fileName, 'rb') as trainFile:
+        with open(featureOpFileName, 'w') as featureOpFile:
 
-        trainReader = csv.reader(trainFile)
-        featureWriter = csv.writer(featureOpFile)
+            trainReader = csv.reader(trainFile)
+            featureWriter = csv.writer(featureOpFile)
 
-        #skip header
-        trainReader.next()
-        prevUserId = ''
-        (birthYear, gender, joinedAt, location, timezone, locale) = \
-            ('','','','','', '')
-        eventFeatureDic = {}
+            #skip header
+            trainReader.next()
+            prevUserId = ''
+            (birthYear, gender, joinedAt, location, timezone, locale) = \
+                ('','','','','', '')
+            eventFeatureDic = {}
 
-        #write header for feature output file
-        """headersTitle = ['user', 'event', 'deltaStartJoin', 'deltaStartShown',\
-                            'deltaShownJoin', 'eventCount', 'simYes', 'simNo',\
-                            'simMaybe', 'simInv', 'popYes', 'popNo',\
-                            'popMaybe', 'popInv']"""
-        headersTitle = ['user', 'event',  'simYes', 'simNo', 'simMaybe',\
-                            'simInv', 'simYCount', 'simNCount', 'simMCount',\
-                            'simICount']
-        #write headers
-        featureWriter.writerow(headersTitle)
-        
-        print 'reading train file', strftime("%Y-%m-%d %H:%M:%S", gmtime())
+            #write header for feature output file
+            """headersTitle = ['user', 'event', 'deltaStartJoin', 'deltaStartShown',\
+                                'deltaShownJoin', 'eventCount', 'simYes', 'simNo',\
+                                'simMaybe', 'simInv', 'popYes', 'popNo',\
+                                'popMaybe', 'popInv']
+            headersTitle = ['user', 'event',  'simYes', 'simNo', 'simMaybe',\
+                                'simInv', 'simYCount', 'simNCount', 'simMCount',\
+                                'simICount']"""
 
-        count = 0
-
-        for row in trainReader:
-            features = []
-            userId = int(row[TRAIN_CONSTS.USER_COL].strip())
-            features.append(userId)
-            eventId = int(row[TRAIN_CONSTS.EVENT_COL].strip())
-            features.append(eventId)
-
-            """
-            userShownTime = time.mktime(parse(\
-                               row[TRAIN_CONSTS.TIMESTAMP_COL]).timetuple())
-
-            #get user features
-            #(birthYear, gender, joinedAt, location, timezone) 
-            if userId != prevUserId:
-                (birthYear, gender, joinedAt, location, timezone, locale) = \
-                    getUserCharacteristics(userId, usersFileName)
-                prevUserId = userId
-
-            (eventCreator, eventLoc, eventLat, eventLong, eventStartTime) = \
-                getEventDetailsFromDic(eventsDic, eventId)
-
-            #get event deltas
-            (deltaStartJoin, deltaStartShown, deltaShownJoin) = getTimeDeltas(\
-                                              eventStartTime, joinedAt,\
-                                                  userShownTime)
-            features.extend([deltaStartJoin, deltaStartShown, deltaShownJoin])
-
+            headersTitle = ['user', 'event', 'eventSimWUser', 'eventSimWFriends',\
+                                'eventSimWPRUsers']
             
-            #get number of events by user in current file
-            userEvCount = eventCount[userId]
-            features.append(userEvCount)
-            """
+            #write headers
+            featureWriter.writerow(headersTitle)
 
-            #get response based on similarity
-            weightDic = getWeightedResponseWt(eventAttendeesDic, simUsersDic,\
-                                                  userId, eventId)
-            features.extend([weightDic['yes'], weightDic['no'], \
-                                  weightDic['maybe'], weightDic['inv']])
+            print 'reading train file', strftime("%Y-%m-%d %H:%M:%S", gmtime())
 
-            #get attendees count from similar users
-            simUsersSet = set([value[1] for value in simUsersDic.values()])
-            (yesSimCount, maybeSimCount, invitedSimCount, noSimCount) = \
-                getEventAtnCount(simUsersSet, eventAttendeesDic[eventId])
-            features.extend([yesSimCount, noSimCount, maybeSimCount,\
-                                 invitedSimCount])
-            
-            """
-            #get event popularity
-            (yesCount, noCount, maybeCount, invCount) = \
-                getEventPopularity(eventId, eventAttendeesDic)
-            features.extend([yesCount, noCount, maybeCount, invCount])
-            """
+            count = 0
 
-            features = map(str, features)
-        
-            #write features
-            featureWriter.writerow(features)
+            for row in trainReader:
+                features = []
+                userId = int(row[TRAIN_CONSTS.USER_COL].strip())
+                features.append(userId)
+                eventId = int(row[TRAIN_CONSTS.EVENT_COL].strip())
+                features.append(eventId)
 
-            if (count%100 == 0):
-                print '100 done...', strftime("%Y-%m-%d %H:%M:%S", gmtime())
+                """
+                userShownTime = time.mktime(parse(\
+                                   row[TRAIN_CONSTS.TIMESTAMP_COL]).timetuple())
+
+                #get user features
+                #(birthYear, gender, joinedAt, location, timezone) 
+                if userId != prevUserId:
+                    (birthYear, gender, joinedAt, location, timezone, locale) = \
+                        getUserCharacteristics(userId, usersFileName)
+                    prevUserId = userId
+
+                (eventCreator, eventLoc, eventLat, eventLong, eventStartTime) = \
+                    getEventDetailsFromDic(eventsDic, eventId)
+
+                #get event deltas
+                (deltaStartJoin, deltaStartShown, deltaShownJoin) = getTimeDeltas(\
+                                                  eventStartTime, joinedAt,\
+                                                      userShownTime)
+                features.extend([deltaStartJoin, deltaStartShown, deltaShownJoin])
+
+
+                #get number of events by user in current file
+                userEvCount = eventCount[userId]
+                features.append(userEvCount)
+                """
+                """
+                #get response based on similarity
+                weightDic = getWeightedResponseWt(eventAttendeesDic, simUsersDic,\
+                                                      userId, eventId)
+                features.extend([weightDic['yes'], weightDic['no'], \
+                                      weightDic['maybe'], weightDic['inv']])
+
+                #get attendees count from similar users
+                simUsersSet = set([value[1] for value in simUsersDic.values()])
+                (yesSimCount, maybeSimCount, invitedSimCount, noSimCount) = \
+                    getEventAtnCount(simUsersSet, eventAttendeesDic[eventId])
+                features.extend([yesSimCount, noSimCount, maybeSimCount,\
+                                     invitedSimCount])
+                """
+                """
+                #get event popularity
+                (yesCount, noCount, maybeCount, invCount) = \
+                    getEventPopularity(eventId, eventAttendeesDic)
+                features.extend([yesCount, noCount, maybeCount, invCount])
+                """
+                
+                #get event similarity with events attended by user
+                eventSimWUser = getEventSimWEvents(userEventsDic[userId], eventId,\
+                                                       eventLabelDic)
+                features.extend(eventSimWUser)
+
+                
+                #get event similarity with events attended by user friends
+                eventSimWFriends = getEventSimWUsers(adjList[userId], eventId,\
+                                                         eventLabelDic,\
+                                                         userEventsDic)
+                features.extend(eventSimWFriends)
+
+
+                #get weighted event similarity with events attended by pr similar users
+                (simUser, pRank) in simUsersDic[userId]
+                simUsers = [ simUser for (simUser, pRank) in simUsersDic[userId]]
+                weights = [pRank for (simUser, pRank) in simUsersDic[userId] ]
+                eventSimWPRUsers = getEventSimWUsers(simUsers, eventId,\
+                                                         eventLabelDic,\
+                                                         userEventsDic,\
+                                                         weights)
+                features.extend(eventSimWPRUSers)
+                
+
+                features = map(str, features)
+
+                #write features
+                featureWriter.writerow(features)
+
+                if (count%100 == 0):
+                    print '100 done...', strftime("%Y-%m-%d %H:%M:%S", gmtime())
 
 
 def extraFeatureWorker((fileName, featureOutFileName, usersFileName,\
@@ -193,6 +232,38 @@ def extraFeatureWorker((fileName, featureOutFileName, usersFileName,\
     getExtraFeatures(fileName, eventAttendeesDic, simUsersDic,\
                          usersFileName, featureOutFileName, eventsDic)
 
+
+def getEventSimWUsers(users, queryEvent, eventLabelDic, userEventsDic, weights=None):
+    userCount = 0
+    netSim = 0
+    for i in range(len(users)):
+        user = users[i]
+        userEvents = userEventsDic[user]
+
+        if len(userEvents) == 0:
+            userCount += 1
+
+        sim = getEventSimWEvents(userEvents, queryEvent, eventLabelDic)
+
+        if weights:
+            netSim += sim*weights[i]
+        else:
+            netSim += sim
+ 
+    return float(netSim)/userCount
+        
+
+def getEventSimWEvents(events, queryEvent, eventLabelDic):
+    queryLabel = eventLabelDic[queryEvent]
+    userEventsLabel = [ eventLabelDic[event]  for event in events] 
+    count = 0
+    for label in userEventsLabel:
+        if label == queryLabel:
+            count += 1
+    if len(events) == 0:
+        print 'no user events'
+        return -1
+    return float(count)/len(userEventsLabel)
 
 
 """ get the list of events attended by each user i.e. indicated 'yes' """
@@ -206,7 +277,6 @@ def getUserEventsDic(eventAttendeesDic):
     return userEventsDic
 
 
-
 def writeUserEventsDic(userEventsDic, userEventsFileName):
     with open(userEventsFileName, 'w') as userEventsFile:
         for user, events in userEventsDic.iteritems():
@@ -214,62 +284,10 @@ def writeUserEventsDic(userEventsDic, userEventsFileName):
             userEventsFile.write(str(user) + ',' + eventsStr +'\n')
             
 
-def getJacSimUser((userIdx, sharedUserEventsAtn)):
-    simDic = {}
-    if userIdx < len(sharedUserEventsAtn):
-        for j in range(userIdx+1, len(sharedUserEventsAtn)):
-            #find the intersecting events b/w user i and user j
-            unionEvCount = len(sharedUserEventsAtn[userIdx][1] | sharedUserEventsAtn[j][1])
-            interEvCount = len(sharedUserEventsAtn[userIdx][1] & sharedUserEventsAtn[j][1])
-            if interEvCount > 0:
-                simDic[sharedUserEventsAtn[j][0]] = float(interEvCount)/unionEvCount
-    return simDic
-
-
-
-#will write user, user, 'event co-attendance jaccard sim'
-def writeUserEventsJacc(userEventsDic, userEventsJacFileName, chunkSize=16):
-    userEventsAtn = []
-    for user, events in userEventsDic.iteritems():
-        userEventsAtn.append((user, set(events)))
-    
-    manager = Manager()
-    sharedUserEventsAtn = manager.list(userEventsAtn)
-    sharedUserEventsAtn.extend(userEventsAtn)
-
-    with open(userEventsJacFileName, 'w') as userEvJacFile:
-        for i in range(0, len(userEventsAtn), chunkSize):
-            pool = Pool(processes=chunkSize)
-            workIdx = range(i, i+chunkSize)
-            workerArgs = map(lambda x : (x, sharedUserEventsAtn), workIdx)
-            simDics = pool.map(getJacSimUser, workerArgs)
-            pool.close()
-            pool.join()
-            for idx in range(i, i+chunkSize):
-                #write similar user for userEventsAtn[idx]
-                
-                if len(simDics[idx-i]) > 0:
-                    userEvJacFile.write(str(userEventsAtn[idx][0]))
-                    for simUser, jacSim in (simDics[idx-i]).iteritems():
-                        userEvJacFile.write(' ' + str(simUser) + ' '\
-                                                + str(jacSim))    
-                userEvJacFile.write('\n')
-
-            """
-            for j in range(i+1, len(userEventsAtn)):
-                #find the intersecting events b/w user i and user j
-                unionEvCount = len(userEventsAtn[i][1] | userEventsAtn[j][1])
-                interEvCount = len(userEventsAtn[i][1] & userEventsAtn[j][1])
-                if interEvCount > 0:
-                    userEvJacFile.write(str(userEventsAtn[i][0]) + ','\
-                                            + str(userEventsAtn[j][0])\
-                                            + ','\
-                                            + str(float(interEvCount)/unionEvCount)\
-                                            + '\n')"""
-
-
 
 def main():
+    logger = multiprocessing.log_to_stderr()
+    logger.setLevel(multiprocessing.SUBDEBUG)
     if len(sys.argv) > 9:
         trainFileName = sys.argv[1]
         testFileName = sys.argv[2]
@@ -279,9 +297,10 @@ def main():
         simUserFileName = sys.argv[6]
         userFriendsFileName  = sys.argv[7]
         userEventsFileName = sys.argv[8]
-        trainFeatureOutFileName = sys.argv[9]
-        testFeatureOutFileName = sys.argv[10]
-        
+        eventLabelFileName = sys.argv[9]
+        trainFeatureOutFileName = sys.argv[10]
+        testFeatureOutFileName = sys.argv[11]
+
         #trainUsersSet = getFirstColSet(trainFileName)
         #testUsersSet = getFirstColSet(testFileName)
         #eventsSet = getFirstColSet(eventAttFileName)
@@ -291,21 +310,33 @@ def main():
         eventAttendeesDic = getEventAttendees(eventAttFileName)
 
         print 'building user events dic...', strftime("%Y-%m-%d %H:%M:%S", gmtime())
+
         userEventsDic = getUserEventsDic(eventAttendeesDic)
-        writeUserEventsJacc(userEventsDic, userEventsFileName)
+
+        #print 'built user event dic'
+        #writeUserEventsJacc(userEventsDic, userEventsFileName)
+
+
         #writeUserEventsDic(userEventsDic, userEventsFileName)
 
-        #simUsersDic = getSimUsersDic(simUserFileName)
-        #adjList = createAdjList(userFriendsFileName, testUsersSet, trainUsersSet)
-        """
+        print 'get adjacency list...'
+
+        adjList = createAdjList(userFriendsFileName, testUsersSet, trainUsersSet)
+        
         modEventFileName = getModdedName(eventsFileName)
         
         print 'reading events file...', strftime("%Y-%m-%d %H:%M:%S", gmtime())
         eventsDic = getEvents(modEventFileName)
 
         simUsersDic = getSimUsersDic(simUserFileName)
+
+        eventLabelDic = getEventLabelDic(eventLabelFileName)
         
-        extraFeatureWorker((trainFileName, trainFeatureOutFileName,\
+        getExtraFeatures(trainFileName, eventAttendeesDic, simUsersDic, \
+                         usersFileName, trainFeatureOutFileName, eventsDic,\
+                         userEventsDic, eventLabelDic, adjList)
+        
+        """extraFeatureWorker((trainFileName, trainFeatureOutFileName,\
                                 usersFileName, eventAttendeesDic,\
                                 simUsersDic, eventsDic)) 
 
