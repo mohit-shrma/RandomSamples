@@ -79,16 +79,16 @@ def getModdedName(name):
 
 
 def writeModdedFiles(firstColElemSet, fileName):
-    with open(fileName, 'rb') as origFile,\
-            open(getModdedName(fileName), 'wb') as modFile:
-        origReader = csv.reader(origFile)
-        modWriter = csv.writer(modFile)
-        #write header
-        header = origReader.next()
-        modWriter.writerow(header)
-        for row in origReader:
-            if int(row[0]) in firstColElemSet:
-                modWriter.writerow(row)
+    with open(fileName, 'rb') as origFile:
+        with open(getModdedName(fileName), 'wb') as modFile:
+            origReader = csv.reader(origFile)
+            modWriter = csv.writer(modFile)
+            #write header
+            header = origReader.next()
+            modWriter.writerow(header)
+            for row in origReader:
+                if int(row[0]) in firstColElemSet:
+                    modWriter.writerow(row)
 
 
 def getFirstColSet(fileName):
@@ -287,120 +287,120 @@ def prepDataFeature(trainFileName, eventAttendeesDic, simUsersDic,\
                       usersFileName, adjList, eventsFileName, featureOpFileName, isTest = False):
     
     
-    with open(trainFileName, 'rb') as trainFile,\
-            open(featureOpFileName, 'w') as featureOpFile:
-        trainReader = csv.reader(trainFile)
-        featureWriter = csv.writer(featureOpFile)
-        #skip header
-        trainReader.next()
-        prevUserId = ''
-        (birthYear, gender, joinedAt, location, timezone, locale) = \
-            ('','','','','', '')
-        eventFeatureDic = {}
+    with open(trainFileName, 'rb') as trainFile:
+        with open(featureOpFileName, 'w') as featureOpFile:
+            trainReader = csv.reader(trainFile)
+            featureWriter = csv.writer(featureOpFile)
+            #skip header
+            trainReader.next()
+            prevUserId = ''
+            (birthYear, gender, joinedAt, location, timezone, locale) = \
+                ('','','','','', '')
+            eventFeatureDic = {}
 
-        #write header for feature output file
-        headersTitle = ['user', 'event', 'invited', 'ageDiff',\
-                               'tzDiff', 'majGender', 'majLocale', 'majLocScore',\
-                               'goingFr', 'notGoingFr', 'isOwnerFr',\
-                               'eventLocScore', 'yesCount', 'maybeCount',\
-                               'invitedCount', 'noCount']
-        if not isTest:
-            headersTitle.append('target')
-
-        #write headers
-        featureWriter.writerow(headersTitle)
-        
-        for row in trainReader:
-            features = []
-            userId = int(row[TRAIN_CONSTS.USER_COL].strip())
-            features.append(userId)
-            eventId = int(row[TRAIN_CONSTS.EVENT_COL].strip())
-            features.append(eventId)
-            invited = int(row[TRAIN_CONSTS.INVITED_COL].strip())
-            features.append(invited)
-                
-            
-            #get user features
-            #(birthYear, gender, joinedAt, location, timezone) 
-            if userId != prevUserId:
-                (birthYear, gender, joinedAt, location, timezone, locale) = \
-                    getUserCharacteristics(userId, usersFileName)
-                prevUserId = userId
-
-            #get majority
-            if eventId not in eventFeatureDic:
-                (birthYearAvg, timezoneAvg, majGender, majLocation, majLocale) = \
-                getMeanCharEvent((eventAttendeesDic[eventId])[EVENT_ATTN.YES_COL - 1],\
-                                     usersFileName)
-                eventFeatureDic[eventId] = (birthYearAvg, timezoneAvg,\
-                                                majGender, majLocation,\
-                                                majLocale)
-            (birthYearAvg, timezoneAvg, majGender, majLocation, majLocale) =\
-                eventFeatureDic[eventId]
-            
-            #get majority params
-            ageDiff = birthYearAvg - birthYear
-            features.append(ageDiff)
-            tzDiff = timezoneAvg - timezone
-            features.append(tzDiff)
-            
-            sameMajGender = 0
-            if gender == majGender:
-                sameMajGender = 1
-            features.append(sameMajGender)
-            
-            sameMajLocale = 0
-            if majLocale == locale:
-                sameMajLocale = 1
-            features.append(sameMajLocale)
-            
-            #get substrings similarity
-            userAtnLocScore = subStrSimilarity(location, majLocation)
-            features.append(userAtnLocScore)
-            
-            #no. of friends going
-            goingFriends = len(set(adjList[userId]) & \
-                            set((eventAttendeesDic[eventId])[EVENT_ATTN.YES_COL - 1]))
-            features.append(goingFriends)
-
-            #no. of friends not going
-            notGoingFriends = len(set(adjList[userId]) & \
-                            set((eventAttendeesDic[eventId])[EVENT_ATTN.NO_COL - 1]))
-            features.append(notGoingFriends)
-
-            
-            #get event specific features
-            (eventCreator, eventLocString, eventLat, eventLng) = \
-                getEventDetails(eventsFileName, eventId)
-
-            
-            isOwnerUserFriend = 0
-            if eventCreator in adjList[userId]\
-                    or eventCreator in simUsersDic[userId]:
-                isOwnerUserFriend = 1
-            features.append(isOwnerUserFriend)
-                
-            #score event location based on similarity with location
-            eventLocationScore = subStrSimilarity(location, eventLocString)
-            features.append(eventLocationScore)
-                
-            #get similar user specific features for the event
-            (yesCount, maybeCount, invitedCount, noCount) = \
-                getEventAtnCount(set(simUsersDic[userId]),\
-                                     eventAttendeesDic[eventId])
-            features.extend([yesCount, maybeCount, invitedCount, noCount])
-            
+            #write header for feature output file
+            headersTitle = ['user', 'event', 'invited', 'ageDiff',\
+                                   'tzDiff', 'majGender', 'majLocale', 'majLocScore',\
+                                   'goingFr', 'notGoingFr', 'isOwnerFr',\
+                                   'eventLocScore', 'yesCount', 'maybeCount',\
+                                   'invitedCount', 'noCount']
             if not isTest:
-                inter = int(row[TRAIN_CONSTS.INTERESTED_COL])
-                notInter = -1 * int(row[TRAIN_CONSTS.NOT_INTERESTED_COL])
-                #get the label +1/-1/0
-                target = inter + notInter
-                features.append(target)
+                headersTitle.append('target')
 
-            features = map(str, features)
-            
-            #write features
-            featureWriter.writerow(features)
+            #write headers
+            featureWriter.writerow(headersTitle)
+
+            for row in trainReader:
+                features = []
+                userId = int(row[TRAIN_CONSTS.USER_COL].strip())
+                features.append(userId)
+                eventId = int(row[TRAIN_CONSTS.EVENT_COL].strip())
+                features.append(eventId)
+                invited = int(row[TRAIN_CONSTS.INVITED_COL].strip())
+                features.append(invited)
+
+
+                #get user features
+                #(birthYear, gender, joinedAt, location, timezone) 
+                if userId != prevUserId:
+                    (birthYear, gender, joinedAt, location, timezone, locale) = \
+                        getUserCharacteristics(userId, usersFileName)
+                    prevUserId = userId
+
+                #get majority
+                if eventId not in eventFeatureDic:
+                    (birthYearAvg, timezoneAvg, majGender, majLocation, majLocale) = \
+                    getMeanCharEvent((eventAttendeesDic[eventId])[EVENT_ATTN.YES_COL - 1],\
+                                         usersFileName)
+                    eventFeatureDic[eventId] = (birthYearAvg, timezoneAvg,\
+                                                    majGender, majLocation,\
+                                                    majLocale)
+                (birthYearAvg, timezoneAvg, majGender, majLocation, majLocale) =\
+                    eventFeatureDic[eventId]
+
+                #get majority params
+                ageDiff = birthYearAvg - birthYear
+                features.append(ageDiff)
+                tzDiff = timezoneAvg - timezone
+                features.append(tzDiff)
+
+                sameMajGender = 0
+                if gender == majGender:
+                    sameMajGender = 1
+                features.append(sameMajGender)
+
+                sameMajLocale = 0
+                if majLocale == locale:
+                    sameMajLocale = 1
+                features.append(sameMajLocale)
+
+                #get substrings similarity
+                userAtnLocScore = subStrSimilarity(location, majLocation)
+                features.append(userAtnLocScore)
+
+                #no. of friends going
+                goingFriends = len(set(adjList[userId]) & \
+                                set((eventAttendeesDic[eventId])[EVENT_ATTN.YES_COL - 1]))
+                features.append(goingFriends)
+
+                #no. of friends not going
+                notGoingFriends = len(set(adjList[userId]) & \
+                                set((eventAttendeesDic[eventId])[EVENT_ATTN.NO_COL - 1]))
+                features.append(notGoingFriends)
+
+
+                #get event specific features
+                (eventCreator, eventLocString, eventLat, eventLng) = \
+                    getEventDetails(eventsFileName, eventId)
+
+
+                isOwnerUserFriend = 0
+                if eventCreator in adjList[userId]\
+                        or eventCreator in simUsersDic[userId]:
+                    isOwnerUserFriend = 1
+                features.append(isOwnerUserFriend)
+
+                #score event location based on similarity with location
+                eventLocationScore = subStrSimilarity(location, eventLocString)
+                features.append(eventLocationScore)
+
+                #get similar user specific features for the event
+                (yesCount, maybeCount, invitedCount, noCount) = \
+                    getEventAtnCount(set(simUsersDic[userId]),\
+                                         eventAttendeesDic[eventId])
+                features.extend([yesCount, maybeCount, invitedCount, noCount])
+
+                if not isTest:
+                    inter = int(row[TRAIN_CONSTS.INTERESTED_COL])
+                    notInter = -1 * int(row[TRAIN_CONSTS.NOT_INTERESTED_COL])
+                    #get the label +1/-1/0
+                    target = inter + notInter
+                    features.append(target)
+
+                features = map(str, features)
+
+                #write features
+                featureWriter.writerow(features)
 
     
 #get similar users from the file
