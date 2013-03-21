@@ -1,5 +1,6 @@
 import sys
 import csv
+import transformedMapping
 
 
 
@@ -219,49 +220,88 @@ def writeJacSimToCSR(userJacSimFileName, userIdMap, csrJacFileName):
         jacSimUsers = set([])
         #jacSimUserDic,  
         jacSimUserDic = {}
-
+        
+        jacSimUserNeigborsSet ={}
+        
         for row in jacSimReader:
+
             user = int(row[0])
             jacSimUsers.add(user)
+
             if user not in jacSimUserDic:
                 jacSimUserDic[user] = []
+
+            if user not in jacSimUserNeigborsSet:
+                jacSimUserNeigborsSet[user] = set([])
+
             for i in range(1, len(row)):
                 [neighbor, jacSim] = row[i].split(':')
+                neighbor = int(neighbor)
+                jacSim = float(jacSim)
                 jacSimUsers.add(neighbor)
-                if neigbor not in jacSimUserDic:
-                    jacSimUserDic[neigbor] = []
+                
+                if neighbor in jacSimUserNeigborsSet[user]:
+                    #neighbor added previously 
+                    continue
+                else:
+                    #add neighbor to previously added set
+                    jacSimUserNeigborsSet[user].add(neighbor)
+
+                #add neighbor and its ismilarity corresponding to user
                 jacSimUserDic[user].append((neighbor, jacSim))
 
+                if neighbor not in jacSimUserNeigborsSet:
+                    jacSimUserNeigborsSet[neighbor] = set([])
+                
+                if neighbor not in jacSimUserDic:
+                    jacSimUserDic[neighbor] = []
+
+                #add user  and its similarity with neighbor
+                jacSimUserDic[neighbor].append((user, jacSim))
+                
+                
+                jacSimUserNeigborsSet[neighbor].add(user)
+
+        print 'prepared jaccard similarity dic ...'
+                
         for user, jacUsers in jacSimUserDic.iteritems():
             csrJacFile.write(str(user))
             for (jacUser, jacSim) in jacUsers:
-                csrJacFile.write(' ' + str(jacUsers ) + ' ' +str(jacSim))
+                csrJacFile.write(' ' + str(jacUser) + ' ' +str(jacSim))
             csrJacFile.write('\n')
 
         for user in userIdMap.keys():
             if user not in jacSimUsers:
-                csrJacFile.write(user + '\n')
+                csrJacFile.write(str(user) + '\n')
         
-                
+             
 
 def main():
 
-    if len(sys.argv) > 4:
+    if len(sys.argv) > 3:
 
-        userFriendsFileName = sys.argv[1]
-        testUsersFileName = sys.argv[2];
-        trainUsersFileName = sys.argv[3];
-        adjFileName = sys.argv[4];
-        idMapFileName = sys.argv[5];
+        #userFriendsFileName = sys.argv[1]
+        #testUsersFileName = sys.argv[2]
+        #trainUsersFileName = sys.argv[3]
+        #adjFileName = sys.argv[4]
+
+        idMapFileName = sys.argv[1] 
+        jacSimFileName = sys.argv[2]
+        csrJacFileName = sys.argv[3]
 
         #userIdMap = convAdjToCSR(userFriendsFileName, csrAdjMatFileName, csrIdMapFileName)
         #convAdjToGraphlabAdj(userIdMap, gLabAdjFileName, userFriendsFileName)
 
-        adjList = getAdjList(userFriendsFileName, \
-                                 getUsersList(trainUsersFileName),\
-                                 getUsersList(testUsersFileName))
-        print 'prepared adjacency... users: ', len(adjList)
-        saveFullAdjList(adjList, adjFileName, idMapFileName)
+        #adjList = getAdjList(userFriendsFileName, \
+        #                         getUsersList(trainUsersFileName),\
+        #                         getUsersList(testUsersFileName))
+        #print 'prepared adjacency... users: ', len(adjList)
+        #saveFullAdjList(adjList, adjFileName, idMapFileName)
+        
+        userIdMap = transformedMapping.getRevMap(idMapFileName)
+        print 'Prepared user id dic ...'
+        writeJacSimToCSR(jacSimFileName, userIdMap, csrJacFileName)
+        
     else:
         print 'err: invalid args'
         
