@@ -370,9 +370,8 @@ def prepDataFeature(trainFileName, eventAttendeesDic, simUsersDic,\
 
 
                 #get event specific features
-                (eventCreator, eventLocString, eventLat, eventLng) = \
+                (eventCreator, eventLocString, eventLat, eventLng, eventStartTime) =\
                     getEventDetails(eventsFileName, eventId)
-
 
                 isOwnerUserFriend = 0
                 if eventCreator in adjList[userId]\

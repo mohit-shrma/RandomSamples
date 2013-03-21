@@ -4,9 +4,6 @@ import time
 from dateutil.parser import parse
 from prepareClassifyData import *
 from time import gmtime, strftime
-import multiprocessing
-from multiprocessing import Process, Manager, Pool
-import logging
 
 
 def getEventLabelDic(eventLabelFileName):
@@ -208,14 +205,13 @@ def getExtraFeatures(fileName, eventAttendeesDic, simUsersDic, \
 
 
                 #get weighted event similarity with events attended by pr similar users
-                (simUser, pRank) in simUsersDic[userId]
                 simUsers = [ simUser for (simUser, pRank) in simUsersDic[userId]]
                 weights = [pRank for (simUser, pRank) in simUsersDic[userId] ]
                 eventSimWPRUsers = getEventSimWUsers(simUsers, eventId,\
                                                          eventLabelDic,\
                                                          userEventsDic,\
                                                          weights)
-                features.extend(eventSimWPRUSers)
+                features.extend(eventSimWPRUsers)
                 
 
                 features = map(str, features)
@@ -226,11 +222,6 @@ def getExtraFeatures(fileName, eventAttendeesDic, simUsersDic, \
                 if (count%100 == 0):
                     print '100 done...', strftime("%Y-%m-%d %H:%M:%S", gmtime())
 
-
-def extraFeatureWorker((fileName, featureOutFileName, usersFileName,\
-                            eventAttendeesDic, simUsersDic,  eventsDic)):
-    getExtraFeatures(fileName, eventAttendeesDic, simUsersDic,\
-                         usersFileName, featureOutFileName, eventsDic)
 
 
 def getEventSimWUsers(users, queryEvent, eventLabelDic, userEventsDic, weights=None):
@@ -260,10 +251,11 @@ def getEventSimWEvents(events, queryEvent, eventLabelDic):
     for label in userEventsLabel:
         if label == queryLabel:
             count += 1
-    if len(events) == 0:
+    if len(userEventsLabel) == 0:
         print 'no user events'
         return -1
-    return float(count)/len(userEventsLabel)
+
+    return (float(count)/len(userEventsLabel))
 
 
 """ get the list of events attended by each user i.e. indicated 'yes' """
@@ -286,8 +278,7 @@ def writeUserEventsDic(userEventsDic, userEventsFileName):
 
 
 def main():
-    logger = multiprocessing.log_to_stderr()
-    logger.setLevel(multiprocessing.SUBDEBUG)
+
     if len(sys.argv) > 9:
         trainFileName = sys.argv[1]
         testFileName = sys.argv[2]
@@ -301,8 +292,8 @@ def main():
         trainFeatureOutFileName = sys.argv[10]
         testFeatureOutFileName = sys.argv[11]
 
-        #trainUsersSet = getFirstColSet(trainFileName)
-        #testUsersSet = getFirstColSet(testFileName)
+        trainUsersSet = getFirstColSet(trainFileName)
+        testUsersSet = getFirstColSet(testFileName)
         #eventsSet = getFirstColSet(eventAttFileName)
         #writeModdedFiles(eventsSet, eventsFileName)
         
@@ -335,17 +326,12 @@ def main():
         getExtraFeatures(trainFileName, eventAttendeesDic, simUsersDic, \
                          usersFileName, trainFeatureOutFileName, eventsDic,\
                          userEventsDic, eventLabelDic, adjList)
-        
-        """extraFeatureWorker((trainFileName, trainFeatureOutFileName,\
-                                usersFileName, eventAttendeesDic,\
-                                simUsersDic, eventsDic)) 
 
-        extraFeatureWorker((testFileName, \
-                                testFeatureOutFileName,\
-                                usersFileName,\
-                                eventAttendeesDic,\
-                                simUsersDic, eventsDic))
-        """
+        getExtraFeatures(testFileName, eventAttendeesDic, simUsersDic, \
+                         usersFileName, testFeatureOutFileName, eventsDic,\
+                         userEventsDic, eventLabelDic, adjList)
+        
+
     else:
         print 'err: insuff arguments'
 
