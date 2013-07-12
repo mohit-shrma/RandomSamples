@@ -10,14 +10,17 @@ import (
 )
 
 
-func filterNWriteTerms( w bufio.Writer, r io.Reader, counts []int, thresh int) {
-        nnzCount := 0
+func filterNWriteTerms( w bufio.Writer, r io.Reader,
+	counts []int, thresh int) []int {
+
+	nnzCount := 0
 	scanner := bufio.NewScanner(r)
 	//read lines from the file
 	var currLine string
 	var currWords []string
+
 	isHeaderRead := false
-        fmt.Println("start writing")
+	fmt.Println("start writing")
 	for scanner.Scan() {
 		if !isHeaderRead {
 			isHeaderRead = true
@@ -51,8 +54,21 @@ func filterNWriteTerms( w bufio.Writer, r io.Reader, counts []int, thresh int) {
 		}
 	   w.WriteString("\n")
 	}
-  fmt.Println("new nnz count: ", nnzCount)
-  w.Flush()
+	
+	fmt.Println("new nnz count: ", nnzCount)
+	
+	//get all new nnz ind
+	nnzs := make([]int, nnzCount)
+	j := 0
+	for i, count := range counts {
+		if count >= thresh {
+			nnzs[j] = i + 1
+			j++
+		}
+	}
+	
+	w.Flush()
+	return nnzs
 }
 
 
@@ -91,6 +107,44 @@ func getTermCount( r io.Reader, counts []int) {
 }
 
 
+func createValidTermMap( fileName string, valIndMap map[int]bool) (valTermMap map[string]bool) {
+
+	valTermMap = make(map[string]bool)
+
+	//open input file
+	fi, err := os.Open(fileName)
+	if err != nil {
+		fmt.Println("term file don't exists")
+		return
+	}
+
+	//close fi on exit and check its returned error
+	defer func() {
+		if err := fi.Close(); err != nil {
+			fmt.Println("can't close term file")
+		}
+	}()
+
+	//make read buffer
+	ir := bufio.NewReader(fi)
+
+	scanner := bufio.NewScanner(ir)
+
+	//read lines from file
+	i := 1
+	currLine := ""
+	for scanner.Scan() {
+		currLine = scanner.Text()
+		currLine = strings.Trim(currLine, " ")
+		_, ok := valIndMap[i]
+		if ok {
+			valTermMap[currLine] = true
+		}
+		i++
+	}
+
+	return 
+}
 
 
 func main() {
@@ -120,7 +174,7 @@ func main() {
 		return
 	}
 
-	//close fi on exit and check its returned error
+	//close fo on exit and check its returned error
 	defer func() {
 		if err := fo.Close(); err != nil {
 			fmt.Println("can't close op file")
@@ -145,6 +199,43 @@ func main() {
 
 	//make write buffer
 	iw := bufio.NewWriter(fo)
+
+	//write the trimmed mat, get the valid nnzs ind
+	valNNZS := filterNWriteTerms( *iw, ir, counts, 100)
+
+	fo.Close()
 	
-	filterNWriteTerms( *iw, ir, counts, 100)
+	//use these nnzs ind, to create valid term map
+	valIndMap := make(map[int]bool)
+	for _, valInd := range valNNZS {
+		valIndMap[valInd] = true
+	}
+
+	//use valIndMap to create valid term map
+	valTermMap := createValidTermMap( "", valIndMap)
+
+	//save these valid terms in a file
+	fo, err = os.Create("valTrainTerm")
+	if err != nil {
+		fmt.Println("op File can't be created")
+		return
+	}
+
+	//close fo on exit and check its returned error
+	defer func() {
+		if err := fo.Close(); err != nil {
+			fmt.Println("can't close op file")
+		}
+	}()
+
+	//make write buffer
+	iw = bufio.NewWriter(fo)
+
+	for valTerm, _ := range valTermMap {
+		//write out the valterm
+		iw.WriteString(valTerm + "\n")
+	}
+	
+	
+	
 }
