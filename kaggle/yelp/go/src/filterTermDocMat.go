@@ -10,37 +10,53 @@ import (
 )
 
 
-func filterNWriteTerms( w io.Writer, r io.Reader, counts [21019937]int, thresh int) {
+func filterNWriteTerms( w bufio.Writer, r io.Reader, counts []int, thresh int) {
+        nnzCount := 0
 	scanner := bufio.NewScanner(r)
 	//read lines from the file
 	var currLine string
 	var currWords []string
 	isHeaderRead := false
+        fmt.Println("start writing")
 	for scanner.Scan() {
 		if !isHeaderRead {
 			isHeaderRead = true
+			fmt.Println("writing header")
+			w.WriteString(scanner.Text())
+			w.WriteString("\n")
 			continue
 		}
 
 		//read current line
 		currLine = scanner.Text()
-		
+		currLine = strings.Trim(currLine, " ")
+		if len(currLine) == 0 {
+		    w.Write([]byte("\n"))
+		    continue
+		  }
 		//read words from line
 		currWords = strings.Split(currLine, " ")
 		var currWordInd int64
+		//fmt.Println(currWords)
 		for i:=0; i < len(currWords); i+=2 {
-			currWordInd, _ = strconv.ParseInt(currWords[i], 10, 64) 
+			currWordInd, _ = strconv.ParseInt(currWords[i], 10, 64)			
 			if counts[currWordInd-1] >= thresh {
-				w.Write([]byte(currWords[i]))
-				w.Write([]byte(" "))
-				w.Write([]byte(currWords[i+1]))
+			    //fmt.Println(currWordInd, counts[currWordInd-1], currWords[i], currWords[i+1])  
+				w.WriteString(currWords[i])
+				w.WriteString(" ")
+				w.WriteString(currWords[i+1])
+			        w.WriteString(" ")
+				nnzCount++
 			}
 		}
+	   w.WriteString("\n")
 	}
+  fmt.Println("new nnz count: ", nnzCount)
+  w.Flush()
 }
 
 
-func getTermCount( r io.Reader, counts [21019937]int) {
+func getTermCount( r io.Reader, counts []int) {
 	scanner := bufio.NewScanner(r)
 	//read lines from the file
 	var currLine string
@@ -54,12 +70,19 @@ func getTermCount( r io.Reader, counts [21019937]int) {
 
 		//read current line
 		currLine = scanner.Text()
-		
+		currLine = strings.Trim(currLine, " ")
+		if len(currLine) == 0 {
+		    continue
+		}
 		//read words from line
 		currWords = strings.Split(currLine, " ")
 		var currWordInd int64
 		var currWordCount int64
+
+		//fmt.Printf("%q\n", currWords)
+		//fmt.Println(len(currWords), currWords[len(currWords)-1], currWords[len(currWords)-2])
 		for i:=0; i < len(currWords); i+=2 {
+		  //fmt.Println(i)
 			currWordInd, _ = strconv.ParseInt(currWords[i], 10, 64)
 			currWordCount, _ = strconv.ParseInt(currWords[i+1], 10, 0) 
 			counts[currWordInd-1] += int(currWordCount)
@@ -104,15 +127,24 @@ func main() {
 		}
 	}()
 
-	//make write buffer
-	iw := bufio.NewWriter(fo)
-	
-	//make read buffer
-	ir = bufio.NewReader(fi)
 
-	var counts [21019937]int
+	counts:= make([]int, 21019937)
 	
 	getTermCount( ir, counts)
 	
-	filterNWriteTerms( iw, ir, counts, 100)
+	fmt.Println("done with term counts: ", counts[:10])
+
+	//make read buffer
+	fi.Close()
+	fi, err = os.Open("trainMat")
+	if err != nil {
+		fmt.Println("ip file don't exists")
+		return
+	}
+	ir = bufio.NewReader(fi)
+
+	//make write buffer
+	iw := bufio.NewWriter(fo)
+	
+	filterNWriteTerms( *iw, ir, counts, 100)
 }
