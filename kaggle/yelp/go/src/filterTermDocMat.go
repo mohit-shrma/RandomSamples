@@ -177,7 +177,7 @@ func main() {
 	//close fo on exit and check its returned error
 	defer func() {
 		if err := fo.Close(); err != nil {
-			fmt.Println("can't close op file")
+			fmt.Println("can't close op file", err)
 		}
 	}()
 
@@ -212,30 +212,36 @@ func main() {
 	}
 
 	//use valIndMap to create valid term map
-	valTermMap := createValidTermMap( "", valIndMap)
+	valTermMap := createValidTermMap( "trainMat.clabel", valIndMap)
+
+	fmt.Print("map size: ")
+	fmt.Println(len(valTermMap))
+
 
 	//save these valid terms in a file
-	fo, err = os.Create("valTrainTerm")
+	fo, err = os.Create("valTrainTerm.txt")
 	if err != nil {
-		fmt.Println("op File can't be created")
+		fmt.Println("op File can't be created: ", err)
 		return
 	}
 
 	//close fo on exit and check its returned error
 	defer func() {
 		if err := fo.Close(); err != nil {
-			fmt.Println("can't close op file")
+			fmt.Println("can't close valTrainTerm.txt file", err)
 		}
 	}()
 
 	//make write buffer
 	iw = bufio.NewWriter(fo)
-
+	fmt.Println("started writing valTrainTerm")
+	i := 0
 	for valTerm, _ := range valTermMap {
 		//write out the valterm
 		iw.WriteString(valTerm + "\n")
+		i++
 	}
-	
-	
-	
+	fmt.Println("wrote ", i, " terms")
+	iw.Flush()
+		
 }
