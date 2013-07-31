@@ -6,6 +6,7 @@ import (
 	"strings"
 	"strconv"
 	"bufio"
+	"math"
 )
 
 
@@ -134,12 +135,131 @@ func readCSRMat(csrFileName string) CSRMat {
 	return csrMat
 }
 
+//get KL divergence between two vectors
+func klDiv(vecA, vecB []int) float64 {
+	d := 0.0
+	for i := range vecA {
+		if (vecA[i] != 0) && (vecB[i] != 0) {
+			d += math.Log((vecA[i]*1.0)/vecB[i]) * vecA[i]
+		}
+	}
+	return d
+}
+
+
+func normalizeVector(vec []float64) []float64 {
+	//normalize vectors
+	sum := 0
+	for _, elem := range vec {
+		sum += elem
+	}
+
+	for i := range vecA {
+		vec[i] = vec[i] / sum
+	}
+
+	return vec
+}
+
+
+//get Jensen-Shannon divergence b/w two vectors
+func jensenShannonDiv(csrMat CSRMat, vecAInd int, vecBInd int) float64 {
+
+	//create vectors
+	vecA := make([]float, csrMat.numRows)
+	vecB := make([]float, csrMat.numRows)
+	vecM := make([]float, csrMat.numRows)
+
+	for j:=csrMat.rows[vecAInd]; j < csrMat.rows[vecAInd+1]; j++ {
+		vecA[csrMat.cols[j]] = csrMat.values[j]
+	}
+
+	for j:=csrMat.rows[vecBInd]; j < csrMat.rows[vecBInd+1]; j++ {
+		vecB[csrMat.cols[j]] = csrMat.values[j]
+	}
+
+	//normalize vectors
+	vecA = normalizeVector(vecA)
+	vecB = normalizeVector(vecB)
+
+	//average the vectors
+	for i := range vecA {
+		vecM[i] = (vecA[i] + vecB[i]) / 2
+	}
+
+	//calculate jensen shannon divergence
+	jsd := 0.5*(klDiv(vecA, vecM) + klDiv(vecB, vecM))
+
+	return jsd
+}
+
+
+type DenseFMat [][]float64
+type BlockMat struct {
+	startRow, endRow int
+	startCol, endCol int
+}
+const NCPU = 4
+
+func (denseFMat DenseFMat) getJensenSim(blockMat BlockMat, csrMat CSRMat, c chan int) {
+
+	//compute similarities for allotted block 
+	//startRow -> endRow-1 , startCol -> endCol-1 
+	for i:=blockMat.startRow; i < blockMat.endRow; i++ {
+		for j:=blockMat.startCol; j < blockMat.endCol; j++ {
+			denseFMat[i][j] = jensenShannonDiv(csrMat, i, j)
+		}
+	}
+	
+	//signal that this work part is done
+	c <- 1 
+}
+
+
+
+
+//create similarity matrix
+func getJensenSimMatrix(CSRMat csrMat) [][]float64 {
+
+	//initialize dense sim matrix
+	denseSimCSRMat := [csrMat.numRows][csrMat.numRows]float64
+
+	//create channel for synchronization
+	c := make(chan int, NCPU)
+
+	var cpuBlockMap map[int]BlockMat
+	cpuBlockMap = make(map[int]BlockMat)
+
+	cpuInd := 0
+	blockSize := (csrMat.numRows * 1.0) / math.Sqrt(NCPU)
+	for i:=0; i < csrMat.numRows; i += blockSize {
+			for j:=0; j < csrMat.numRows; j += blockSize {
+				cpuBlockMap[cpuInd++] = BlockMat{i, i+blockSize, j, j+blockSize}
+			}
+	}
+
+	for i:=0; i < NCPU; i++ {
+		go denseSimCSRMat.getJensenSim(cpuBlockMap[i], csrMat, c)
+	}
+
+	//drain the channel
+	for i:=0; i < NCPU; i++ {
+		<-c //wait for task to complete
+	}
+
+}
+
+
+
+
 
 func main() {
+
 	csrFileName := "csr1.mat"
 	csrMat := readCSRMat(csrFileName)
-	fmt.Println(strconv.Itoa(csrMat.numRows))
+	//fmt.Println(strconv.Itoa(csrMat.numRows))
 	if csrMat.numRows > 0 {
 		writeCSRMat(csrFileName+"_dup", csrMat)
 	}
+
 }
