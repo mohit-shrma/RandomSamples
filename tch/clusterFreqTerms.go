@@ -222,7 +222,7 @@ func (denseFMat DenseFMat) getJensenSim(blockMat BlockMat, csrMat CSRMat, c chan
 func getJensenSimMatrix(CSRMat csrMat) [][]float64 {
 
 	//initialize dense sim matrix
-	denseSimCSRMat := [csrMat.numRows][csrMat.numRows]float64
+	denseSimCSRMat := [csrMat.numRows][csrMat.numRows]float64{}
 
 	//create channel for synchronization
 	c := make(chan int, NCPU)
@@ -234,7 +234,8 @@ func getJensenSimMatrix(CSRMat csrMat) [][]float64 {
 	blockSize := (csrMat.numRows * 1.0) / math.Sqrt(NCPU)
 	for i:=0; i < csrMat.numRows; i += blockSize {
 			for j:=0; j < csrMat.numRows; j += blockSize {
-				cpuBlockMap[cpuInd++] = BlockMat{i, i+blockSize, j, j+blockSize}
+				cpuBlockMap[cpuInd] = BlockMat{i, i+blockSize, j, j+blockSize}
+				cpuInd++
 			}
 	}
 
@@ -248,9 +249,6 @@ func getJensenSimMatrix(CSRMat csrMat) [][]float64 {
 	}
 
 }
-
-
-
 
 
 func main() {
