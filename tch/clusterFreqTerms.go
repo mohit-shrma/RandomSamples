@@ -434,11 +434,103 @@ func writeDenseMat(csrFileName string, denseFMat DenseFMat) {
 
 
 
+func saveMergeSeq(merges []Pair, opFileName string) {
+	//open output file 
+	fo, err := os.Create(opFileName)
+	if err != nil {
+		fmt.Println("op File can't be created")
+		return
+	}
+
+	//close fo on exit and check its returned error
+	defer func() {
+		if err := fo.Close(); err != nil {
+			fmt.Println("can't close op file", err)
+		}
+	}()
+
+	//make write buffer
+	iw := bufio.NewWriter(fo)
+	
+	for _, pair := range merges {
+		iw.WriteString(strconv.Itoa(pair.term1Ind) + " " + strconv.Itoa(pair.term2Ind) + "\n")
+	}
+
+	iw.Flush()
+
+}
+
+
+
+func simpleHAC(denseFMat DenseFMat, numTerms int) []Pair {
+
+	//keep track of active clusters
+	inActCluster := make([]bool, numTerms)
+
+	//store sequence of merges
+	merges := make([]Pair, 0, 2400)
+	maxPair := Pair{}
+	maxVal := 0.0
+	for k:=0; k < numTerms-1; k++ {
+		fmt.Println("Merge Iter: " + strconv.Itoa(k))
+		//get the pair(i,m) with max similarity S.T.
+		// i != m, inActCluster[i] == false, inActCluster[m] == false
+		maxPair = Pair{}
+		maxVal = 0
+
+		for i:=0; i < numTerms; i++ {
+			for m:=i+1; m < numTerms; m++ {
+				if !inActCluster[i] && !inActCluster[m] {
+					if denseFMat[i][m] > maxVal {
+						maxVal = denseFMat[i][m]
+						maxPair = Pair{i, m}
+					}
+				}
+			}
+		}
+
+		if maxVal > 0 {
+			merges = append(merges, maxPair)
+		} else {
+			//can't proceed ahead
+			break
+		}
+		
+		i := maxPair.term1Ind
+		m := maxPair.term2Ind
+		
+		//update similarity of all terms with i
+		for j:=0; j < numTerms; j++ {
+			if i != j {
+				denseFMat[i][j] = min(denseFMat[j][i],denseFMat[j][m])
+				denseFMat[j][i] = denseFMat[i][j]
+ 			}
+		}
+
+		//deactivate clusters
+		inActCluster[m] = true
+	}
+
+	return merges
+}
+
+
+
+func min(a, b float64) float64 {
+	if a < b {
+		return a
+	} else {
+		return b
+	}
+}
+
+
 func main() {
 
 	var fileName = flag.String("file","csr1.mat","matrix file name to read")
 	flag.Parse()
 	fmt.Println("\nfileName is: ", *fileName)
+	fmt.Println("numCpu: ", runtime.NumCPU())
 
 	csrFileName := *fileName
 	csrMat := readCSRMat(csrFileName)
@@ -447,12 +539,14 @@ func main() {
 		//writeCSRMat(csrFileName+"_dup", csrMat)
 	}
 
-	//denseJSDMat := getJensenSimMatrix(csrMat)
-	//writeDenseMat(csrFileName+"_dense_sim", denseJSDMat)
+	denseJSDMat := getJensenSimMatrix(csrMat)
+	writeDenseMat(csrFileName+"_dense_sim", denseJSDMat)
 
-	maxOccCount := 90000 //max occurences possible equal number of movies
-	denseMutInfMat := getMutInfoSimMatrix(csrMat, maxOccCount)
-	writeDenseMat(csrFileName+"_dense_MutInf", denseMutInfMat)
+	merges := simpleHAC(denseJSDMat, csrMat.numRows)
+	saveMergeSeq(merges, csrFileName+"_merges")
 
-	fmt.Println("numCpu: ", runtime.NumCPU())
+	//maxOccCount := 90000 //max occurences possible equal number of movies
+	//denseMutInfMat := getMutInfoSimMatrix(csrMat, maxOccCount)
+	//writeDenseMat(csrFileName+"_dense_MutInf", denseMutInfMat)
 }
+
