@@ -22,6 +22,15 @@ type CSRMat struct {
 	numCols int
 }
 
+type DenseFMat [][]float64
+
+type Pair struct {
+	term1Ind int
+	term2Ind int
+}
+
+const NCPU = 4
+
 
 //write csr matrix to file in csr format
 func writeCSRMat(csrFileName string, csrMat CSRMat) {
@@ -164,8 +173,54 @@ func normalizeVector(vec []float64) []float64 {
 }
 
 
+//get mutual-info based on occurence count
+//TODO: Assuming termInd starts from 0, maxOccCount is maximum possible number of
+//occurences 
+func mutualInfo(csrMat CSRMat, term1Ind, term2Ind int, maxOccCount float64) float64 {
+	
+	//get co-occurence count
+	jointCount := 0.0
+	for j:=csrMat.rows[term1Ind]; j < csrMat.rows[term1Ind+1]; j++ {
+		if csrMat.cols[j] == term2Ind {
+			jointCount = float64(csrMat.values[j])
+		}
+	}
+	if jointCount == 0 {
+		return 0.0
+	}
+
+	//get term1 occurence count
+	term1Count := 0.0
+	for j:=csrMat.rows[term1Ind]; j < csrMat.rows[term1Ind+1]; j++ {
+		term1Count += float64(csrMat.values[j])
+	}
+	if term1Count == 0 {
+		return 0.0
+	}
+
+	//get term2 occurence count
+	term2Count := 0.0
+	for j:=csrMat.rows[term2Ind]; j < csrMat.rows[term2Ind+1]; j++ {
+		term2Count += float64(csrMat.values[j])
+	}
+	if term2Count == 0 {
+		return 0.0
+	}
+
+
+	jointProb := (jointCount/maxOccCount)
+	term1Prob := (term1Count/(maxOccCount*float64(csrMat.numRows)))
+	term2Prob := (term2Count/(maxOccCount*float64(csrMat.numRows)))
+
+	//fmt.Println(jointProb, term1Prob, term2Prob)
+
+	return jointProb * math.Log( jointProb / (term1Prob*term2Prob) )
+}
+
+
+
 //get Jensen-Shannon divergence b/w two vectors
-func jensenShannonDiv(csrMat CSRMat, vecAInd int, vecBInd int) float64 {
+func jensenShannonDiv(csrMat CSRMat, vecAInd , vecBInd int) float64 {
 
 	//create vectors
 	vecA := make([]float64, csrMat.numRows)
@@ -196,19 +251,6 @@ func jensenShannonDiv(csrMat CSRMat, vecAInd int, vecBInd int) float64 {
 }
 
 
-type DenseFMat [][]float64
-
-type BlockMat struct {
-	startRow, endRow int
-	startCol, endCol int
-}
-
-type Pair struct {
-	term1Ind int
-	term2Ind int
-}
-
-const NCPU = 4
 
 func (denseFMat DenseFMat) getJensenSim(termPairs []Pair, csrMat CSRMat, c chan int) {
 
@@ -281,6 +323,77 @@ func getJensenSimMatrix(csrMat CSRMat) [][]float64 {
 }
 
 
+func (denseFMat DenseFMat) getMutInfoSim(termPairs []Pair, csrMat CSRMat, maxOccCount int, c chan int) {
+
+	//compute similarities for allotted chunk
+	mutInfo := 0.0
+	for _, termPair := range termPairs {
+		mutInfo = mutualInfo(csrMat, termPair.term1Ind, termPair.term2Ind, float64(maxOccCount))
+		denseFMat[termPair.term1Ind][termPair.term2Ind] = mutInfo
+		denseFMat[termPair.term2Ind][termPair.term1Ind] = mutInfo
+	}
+	
+	//signal that this work part is done
+	c <- 1 
+}
+
+
+//create mutual Info similarity matrix
+func getMutInfoSimMatrix(csrMat CSRMat, maxOccCount int) [][]float64 {
+
+	//initialize dense sim matrix
+	denseSimCSRMat := make([]([]float64), csrMat.numRows)
+	for i := range denseSimCSRMat {
+		denseSimCSRMat[i] = make([]float64, csrMat.numRows)
+	}
+
+	denseFMat := DenseFMat(denseSimCSRMat)
+
+	//create channel for synchronization
+	c := make(chan int, NCPU)
+
+	//number of possible pairs numRows<C>2 nC2 = n!/ (n-2!) 2! = n * (n-1)/2
+	numPairs := (csrMat.numRows * (csrMat.numRows-1)) / 2
+	//generate all pairs
+	allPairs := make([]Pair, 0, numPairs)
+	for i:=0; i < csrMat.numRows; i++ {
+		for j:=i+1; j < csrMat.numRows; j++ {
+			allPairs = append(allPairs, Pair{i, j})
+		}
+	}
+
+	/*
+	for _, pair := range allPairs {
+		fmt.Println(pair.term1Ind, pair.term2Ind)
+	}*/
+
+
+	fmt.Printf("\nest number of pairs: %d actual number of pairs: %d\n",
+		numPairs, len(allPairs))
+
+	//compute all pair similarity and divide among cpus
+	for i:=0; i < NCPU; i++ {
+		//do for pairs [i*numPairs/NCPU -> (i+1)*numPairs/NCPU]
+		go denseFMat.getMutInfoSim(
+			allPairs[(i*numPairs*1.0)/NCPU:((i+1)*numPairs*1.0)/NCPU],
+			csrMat, maxOccCount, c)
+	}
+
+	//drain the channel
+	for i:=0; i < NCPU; i++ {
+		<-c //wait for task to complete
+	}
+
+	//show learned sim matrix
+	/*for _, row := range denseFMat {
+		fmt.Println(row)
+	}*/
+
+	return denseFMat
+}
+
+
+
 //write dense sim  matrix to file in csr format
 func writeDenseMat(csrFileName string, denseFMat DenseFMat) {
 	//open output file 
@@ -327,14 +440,19 @@ func main() {
 	flag.Parse()
 	fmt.Println("\nfileName is: ", *fileName)
 
-
 	csrFileName := *fileName
 	csrMat := readCSRMat(csrFileName)
 	//fmt.Println(strconv.Itoa(csrMat.numRows))
 	if csrMat.numRows > 0 {
-		writeCSRMat(csrFileName+"_dup", csrMat)
+		//writeCSRMat(csrFileName+"_dup", csrMat)
 	}
-	denseFMat := getJensenSimMatrix(csrMat)
-	writeDenseMat(csrFileName+"_dense_sim", denseFMat)
+
+	//denseJSDMat := getJensenSimMatrix(csrMat)
+	//writeDenseMat(csrFileName+"_dense_sim", denseJSDMat)
+
+	maxOccCount := 90000 //max occurences possible equal number of movies
+	denseMutInfMat := getMutInfoSimMatrix(csrMat, maxOccCount)
+	writeDenseMat(csrFileName+"_dense_MutInf", denseMutInfMat)
+
 	fmt.Println("numCpu: ", runtime.NumCPU())
 }
