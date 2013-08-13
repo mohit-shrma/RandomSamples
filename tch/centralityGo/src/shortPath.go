@@ -23,14 +23,35 @@ func getShortDistFrmVertex(adjMat CSRMat, srcId int) {
 
 	//create the min heap
 	vertHeap := Heap{}
-	vertHeap.heapNodes = make([]HeapNode, 100)
+	vertHeap.heapNodes = make([]HeapNode, 7000)
 	vertHeap.heapSize = 0
+
+	minHeapInsert(vertHeap, HeapNode{srcId, 0})
 
 	//count of vertices assigned exact dist
 	exactVertCount = 0
 
 	for ;exactVertCount < adjMat.numRows; exactVertCount++ {
-		//TODO: extract the vertex with min dist from the min heap
+		//extract the vertex with min dist from the min heap
+		minHeapNode := heapExtractMin(vertHeap)
+
+		//mark this as exact dist
+		labelNodes[minHeapNode.nodeId] = 1
+		distNodes[minHeapNode.nodeId] = minHeapNode.dist
+
+
+		//clear the heap
+		//TODO: pass struct by pointer or make method on heap
+		//clearHeap(vertHeap)
+
+		//estimate dist to adj nodes of extracted node
+		for i:=adjMat.rows[minHeapNode.nodeId]; 
+         i < adjMat.rows[minHeapNode.nodeId+1]; i++ {
+					 //insert only if need to relax
+					 minHeapInsert(vertHeap, HeapNode{adjMat.cols[i],
+						 minHeapNode.dist + adjMat.values[i]})
+		}
+
 		
 	}
 
