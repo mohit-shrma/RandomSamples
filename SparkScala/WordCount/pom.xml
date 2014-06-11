@@ -1,0 +1,50 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>sparkwordcount</groupId>
+  <artifactId>sparkwordcount</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+  <packaging>jar</packaging>
+  <name>"Spark Word Count"</name>
+
+<build>
+  <plugins>
+    <plugin>
+      <groupId>org.scala-tools</groupId>
+      <artifactId>maven-scala-plugin</artifactId>
+      <executions>
+	<execution>
+	<goals>
+	  <goal>compile</goal>
+	  <goal>testCompile</goal>
+	</goals>
+	</execution>
+      </executions>
+    </plugin>
+  </plugins>
+</build>
+
+<pluginRepositories>
+  <pluginRepository>
+    <id>scala-tools.org</id>
+    <name>Scala-tools Maven2 Repository</name>
+    <url>http://scala-tools.org/repo-releases</url>
+  </pluginRepository>
+</pluginRepositories>
+
+<dependencies>
+
+  <dependency>
+    <groupId>org.scala-lang</groupId>
+    <artifactId>scala-library</artifactId>
+    <version>2.10.3</version>
+  </dependency>
+
+  <dependency>
+    <groupId>org.apache.spark</groupId>
+    <artifactId>spark-core_2.10</artifactId>
+    <version>0.9.1</version>
+  </dependency>
+
+</dependencies>
+
+</project>
