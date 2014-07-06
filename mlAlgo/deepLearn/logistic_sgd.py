@@ -198,29 +198,3 @@ def sgd_optimization_mnist(learning_rate=0.13, n_epochs=1000,
 if __name__ == '__main__':
   sgd_optimization_mnist()
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-  
-
-
-
-
-
-
-
-
-
-
-  
-
