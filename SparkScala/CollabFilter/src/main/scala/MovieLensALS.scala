@@ -83,9 +83,9 @@ object MovieLensALS {
       + numTest)
 
     //initialize parameters grid to learn model
-    val ranks = List(5,15,25,30)
-    val lambdas = List(0.01, 0.1, 1, 10.0)
-    val numIters = List(20, 50)
+    val ranks = List(5, 10, 15)
+    val lambdas = List(0.01, 0.1, 1)
+    val numIters = List(10, 20)
 
     //Learn models using ALS
     var bestModel: Option[MatrixFactorizationModel] = None

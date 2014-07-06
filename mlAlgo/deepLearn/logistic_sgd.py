@@ -22,7 +22,9 @@ class LogisticRegression(object):
     
     #compute prediction in symbolic form
     self.y_pred = T.argmax(self.p_y_given_x, axis=1)
-
+    
+    #parameters of model
+    self.params = [self.W, self.b]
 
   def negative_log_likelihood(self, y):
     return -T.mean(T.log(self.p_y_given_x)[T.arange(y.shape[0]), y])
