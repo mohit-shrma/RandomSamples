@@ -41,7 +41,7 @@ class SdA(object):
         input_size = hidden_layers_sizes[i-1]
         layer_input = self.sigmoid_layers[-1].output
 
-      sigmoid_layer = HiddenLayer(rng=rng, input=layer_input, n_in=input_size,
+      sigmoid_layer = HiddenLayer(rng=numpy_rng, input=layer_input, n_in=input_size,
           n_out=hidden_layers_sizes[i], activation=T.nnet.sigmoid)
       
       #add to our list of layers
@@ -52,26 +52,27 @@ class SdA(object):
       self.params.extend(sigmoid_layer.params)
 
       #construct denoising autoencoder that shared weights with this layer
-      dA_layer = dA(rng=rng, trng=trng, input=layer_input, n_visible=input_size,
+      dA_layer = dA(numpy_rng=numpy_rng, theano_rng=theano_rng, input=layer_input, 
+          n_visible=input_size,
           n_hidden=hidden_layers_sizes[i],
-          corruption_level=corruption_levels[0], W=sigmoid_layer.W,
+          W=sigmoid_layer.W,
           bhid=sigmoid_layer.b)
       self.dA_layers.append(dA_layer)
 
-  #add logistic layer on top of MLP
-  self.logLayer = LogisticRegression(input=self.sigmoid_layers[-1].output,
-      n_in=hidden_layers_sizes[-1], n_out=n_outs)
-  self.params.extend(self.logLayer.params)
+    #add logistic layer on top of MLP
+    self.logLayer = LogisticRegression(input=self.sigmoid_layers[-1].output,
+        n_in=hidden_layers_sizes[-1], n_out=n_outs)
+    self.params.extend(self.logLayer.params)
 
-  #function that implements fine tuning
+    #function that implements fine tuning
 
-  #compute cost for second phase of training, defined as negative log likelihood
-  self.finetune_cost = self.logLayer.negative_log_likelihood(self.y)
-  
-  #compute gradients w.r.t. model parameters
-  #symbolic variable for no. of errors made on minibatch given by self.x and
-  #self.y
-  self.errors = self.logLayer.errors(self.y)
+    #compute cost for second phase of training, defined as negative log likelihood
+    self.finetune_cost = self.logLayer.negative_log_likelihood(self.y)
+    
+    #compute gradients w.r.t. model parameters
+    #symbolic variable for no. of errors made on minibatch given by self.x and
+    #self.y
+    self.errors = self.logLayer.errors(self.y)
   
   def pretraining_functions(self, train_set_x, batch_size):
     '''generates list of function, each of them implementing one step in
@@ -133,13 +134,13 @@ class SdA(object):
         name='train')
     
     test_score_i = theano.function([index], self.errors, givens ={
-      self.x: test_set_x[index * batch_size: (index + 1) * batch_size]],
-      self.y: test_set_y[index * batch_size: (index + 1) * batch_size]]},
+      self.x: test_set_x[index * batch_size: (index + 1) * batch_size],
+      self.y: test_set_y[index * batch_size: (index + 1) * batch_size]},
       name='test')
 
     valid_score_i = theano.function([index], self.errors, givens={
-      self.x: valid_set_x[index * batch_size: (index + 1) * batch_size]],
-      self.y: valid_set_y[index * batch_size: (index + 1) * batch_size]]},
+      self.x: valid_set_x[index * batch_size: (index + 1) * batch_size],
+      self.y: valid_set_y[index * batch_size: (index + 1) * batch_size]},
       name='valid')
 
     #create func to scan entire validation set
@@ -198,6 +199,84 @@ def testSdA(finetune_lr=0.1, pretraining_epochs=15, pretrain_lr=0.001,
                         ((end_time - start_time) / 60.))
   #finetuning the model
   #get training testing and validation function for the model
+  print '... getting the finetuning functions'
+  train_fn, validate_model, test_model = sda.build_finetune_functions(
+                            datasets=datasets, batch_size=batch_size,
+                            learning_rate=finetune_lr)
+  
+  print '... finetuning the model'
+  #early-stopping parameters
+  #look atleast these many examples
+  patience = 10 * n_train_batches
+  #wait this much longer when new best found
+  patience_increase = 2.
+  #following improvement is considered significant
+  improvement_threshold = 0.995
+  #go through these minibatches before validation checking
+  validation_frequency = min(n_train_batches, patience / 2)
+
+  best_params = None
+  best_validation_loss = numpy.inf
+  test_score = 0.
+  start_time = time.clock()
+
+  done_looping = False
+  epoch = 0
+
+  while (epoch < training_epochs) and (not done_looping):
+    epoch = epoch + 1
+    for minibatch_index in xrange(n_train_batches):
+      minibatch_avg_cost = train_fn(minibatch_index)
+      iter = (epoch - 1) * n_train_batches + minibatch_index
+
+      if (iter + 1) % validation_frequency == 0:
+        validation_losses = validate_model()
+        this_validation_loss = numpy.mean(validation_losses)
+        print('epoch %i, minibatch %i/%i, validation error %f %%' % (epoch,
+          minibatch_index+1, n_train_batches, this_validation_loss*100.))
+
+        #if we have the best validation score till now
+        if this_validation_loss < best_validation_loss*improvement_threshold:
+          #improve patience if loss improvement is good
+          patience = max(patience, iter * patience_increase)
+
+          #save best validation score and iteration no.
+          best_validation_loss = this_validation_loss
+          best_iter = iter
+
+          #test on test set
+          test_losses = test_model()
+          test_score = numpy.mean(test_losses)
+          print(('epoch %i, minibatch %i/%i, test error of best mdoel %f %%') %
+              (epoch, minibatch_index,+1, n_train_batches, test_score * 100.))
+
+      if patience <= iter:
+        done_looping = True
+        break
+
+  end_time = time.clock()
+  print(('Optimization complete with best validation score %f %% with test '
+    'performance %f %%') % (best_validation_loss*100., test_score*100.))
+  print >> sys.stderr, ('The training code for file ' + os.path.split(__file__)[1] +
+                        ' ran for %.2fm' % ((end_time - start_time) / 60.))
+
+
+if __name__ == '__main__':
+  testSdA()      
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
 
 
 
